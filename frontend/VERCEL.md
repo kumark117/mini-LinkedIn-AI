@@ -15,7 +15,7 @@ This app runs **locally** with a **custom Node server** (`server.ts`: HTTP + **W
    - move realtime to **Pusher / Ably / Partykit / Supabase Realtime**, **or**
    - host the WS service elsewhere and point the client to it.
 
-2. **In-memory pub/sub** (`lib/sse.ts` `globalThis` subscribers): with **multiple** serverless instances, **post broadcasts** may only reach clients on the **same** instance as the poster. For reliable feed updates on Vercel, use a **shared** bus (Redis, etc.) or **polling** / **revalidate**.
+2. **In-memory pub/sub** (`lib/sse.ts` `globalThis` subscribers): with **multiple** serverless instances, **post broadcasts** may only reach clients on the **same** instance as the poster. For reliable live updates on Vercel, use a **shared** bus (Redis, etc.) or **polling** / **revalidate**.
 
 3. **`/api/admin/reset-db`** spawns `prisma migrate reset` — **not suitable** for production on Vercel; keep `ALLOW_DB_RESET` off and run migrations in CI.
 

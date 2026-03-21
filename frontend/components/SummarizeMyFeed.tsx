@@ -37,7 +37,7 @@ export default function SummarizeMyFeed() {
         }}
         className="li-text-btn"
       >
-        {loading ? 'Summarizing…' : 'Summarize my feed'}
+        {loading ? 'Summarizing…' : 'Summarize my posts'}
       </button>
 
       {error ? (
