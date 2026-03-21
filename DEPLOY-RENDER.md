@@ -48,8 +48,8 @@ Note the service **public URL** (e.g. `https://mini-linkedin-api.onrender.com`) 
 - **New** → **Web Service**, same repo.
 - **Root directory**: `frontend`
 - **Runtime**: Node
-- **Build command**:  
-  `npm install && npx prisma generate && npx prisma migrate deploy && npm run build`
+- **Build command**: `node scripts/render-build.cjs`  
+  (or manually: `npm install && npx prisma generate && npx prisma migrate deploy && npm run build` — **`DATABASE_URL` must be set** or migrate will fail)
 - **Start command**: `npm start`
 - **Environment** (minimum):
   - `DATABASE_URL` — same DB as above.

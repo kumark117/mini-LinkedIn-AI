@@ -2,13 +2,11 @@ import 'dotenv/config';
 import { defineConfig } from 'prisma/config';
 
 /**
- * Prisma 7’s `env('DATABASE_URL')` throws if unset — that breaks `prisma generate` in CI
- * when the var isn’t loaded yet. Use a placeholder only so generate can run; `migrate deploy`
- * still needs the real URL (set DATABASE_URL on Render for the Next.js service).
+ * Use `process.env` (not `env()` from prisma/config) so unset DATABASE_URL does not throw
+ * while loading this file. `prisma generate` works without a real DB; `migrate deploy` needs
+ * DATABASE_URL — set it on Render for the Next.js service (same as runtime).
  */
-const databaseUrl =
-  process.env.DATABASE_URL?.trim() ||
-  'postgresql://build:build@127.0.0.1:5432/prisma_placeholder';
+const databaseUrl = process.env.DATABASE_URL?.trim() || '';
 
 export default defineConfig({
   schema: 'prisma/schema.prisma',
