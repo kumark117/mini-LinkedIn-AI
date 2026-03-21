@@ -13,6 +13,31 @@ export default function CreatePost({ isAuthenticated }: { isAuthenticated: boole
   const canSubmit = isAuthenticated && content.trim().length > 0 && !posting;
   const showToolbar = expanded || content.trim().length > 0;
 
+  const submitPost = async () => {
+    if (!canSubmit || posting) return;
+    setPosting(true);
+    setStatus('Posting…');
+    try {
+      const res = await fetch('/api/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ content: content.trim() })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setStatus(typeof data?.error === 'string' ? data.error : 'Failed to post');
+        return;
+      }
+      setContent('');
+      setStatus(null);
+      setExpanded(false);
+      router.refresh();
+    } finally {
+      setPosting(false);
+    }
+  };
+
   return (
     <div className="li-composer">
       <div className="li-composer__avatar" aria-hidden />
@@ -27,7 +52,14 @@ export default function CreatePost({ isAuthenticated }: { isAuthenticated: boole
           value={content}
           onChange={(e) => setContent(e.target.value)}
           onFocus={() => setExpanded(true)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              void submitPost();
+            }
+          }}
           placeholder={isAuthenticated ? 'Start a post…' : 'Sign in to post'}
+          title={isAuthenticated ? 'Enter to post · Shift+Enter for a new line' : undefined}
           disabled={!isAuthenticated}
           rows={showToolbar ? 3 : 1}
         />
@@ -37,32 +69,7 @@ export default function CreatePost({ isAuthenticated }: { isAuthenticated: boole
               type="button"
               disabled={!canSubmit}
               className="li-btn-primary"
-              onClick={() => {
-                void (async () => {
-                  if (!canSubmit || posting) return;
-                  setPosting(true);
-                  setStatus('Posting…');
-                  try {
-                    const res = await fetch('/api/posts', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      credentials: 'same-origin',
-                      body: JSON.stringify({ content: content.trim() })
-                    });
-                    const data = await res.json().catch(() => ({}));
-                    if (!res.ok) {
-                      setStatus(typeof data?.error === 'string' ? data.error : 'Failed to post');
-                      return;
-                    }
-                    setContent('');
-                    setStatus(null);
-                    setExpanded(false);
-                    router.refresh();
-                  } finally {
-                    setPosting(false);
-                  }
-                })();
-              }}
+              onClick={() => void submitPost()}
             >
               Post
             </button>
