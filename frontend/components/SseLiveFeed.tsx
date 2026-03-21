@@ -231,83 +231,94 @@ export default function SseLiveFeed({
     return collapseHeartBeatToLatest(posts);
   }, [posts, enableHeartBeatFilter, heartBeatOnly]);
 
-  return (
-    <>
-      {newsStripActive ? (
-        <section
-          className={`li-live-news${newsJustUpdated ? ' li-live-news--fresh' : ''}`}
-          aria-label="Live headlines demo"
-          data-news-age-tick={newsAgeTick}
-        >
-          <div className="li-live-news__bar">
-            <span className="li-live-news__title">
-              <span className="li-live-news__dot" aria-hidden />
-              Live headlines
-            </span>
-            <span className="li-live-news__meta">
-              {liveNews?.feed_label ?? 'RSS via FastAPI'}
-              {liveNews?.updated_at ? (
-                <>
-                  {' '}
-                  <span className="muted" title={liveNews.updated_at}>
-                    · {formatNewsAge(liveNews.updated_at)}
-                  </span>
-                </>
-              ) : null}
-              {newsJustUpdated ? (
-                <span className="li-live-news__sse-badge" title="New batch from SSE">
-                  SSE
+  const newsSection =
+    newsStripActive ? (
+      <section
+        className={`li-live-news li-live-news--sidebar${newsJustUpdated ? ' li-live-news--fresh' : ''}`}
+        aria-label="Live headlines demo"
+        data-news-age-tick={newsAgeTick}
+      >
+        <div className="li-live-news__bar">
+          <span className="li-live-news__title">
+            <span className="li-live-news__dot" aria-hidden />
+            Live headlines
+          </span>
+          <span className="li-live-news__meta">
+            {liveNews?.feed_label ?? 'RSS via FastAPI'}
+            {liveNews?.updated_at ? (
+              <>
+                {' '}
+                <span className="muted" title={liveNews.updated_at}>
+                  · {formatNewsAge(liveNews.updated_at)}
                 </span>
-              ) : null}
-            </span>
+              </>
+            ) : null}
+            {newsJustUpdated ? (
+              <span className="li-live-news__sse-badge" title="New batch from SSE">
+                SSE
+              </span>
+            ) : null}
+          </span>
+        </div>
+        {liveNews?.disabled ? (
+          <p className="li-live-news__waiting muted">RSS demo is off on FastAPI (set NEWS_DEMO_ENABLED).</p>
+        ) : newsFetchError && !liveNews ? (
+          <p className="li-live-news__waiting muted" role="alert">
+            Couldn’t load headlines — start FastAPI on port 8000. If it still fails, set{' '}
+            <code className="li-inline-code">FASTAPI_BASE_URL=http://127.0.0.1:8000</code> in{' '}
+            <code className="li-inline-code">frontend/.env</code> and restart <code className="li-inline-code">npm run dev</code>.
+          </p>
+        ) : newsLoading && !liveNews ? (
+          <p className="li-live-news__waiting muted">Pulling the latest items…</p>
+        ) : liveNews?.error === 'fetch_failed' || (liveNews && liveNews.items.length === 0 && !liveNews.disabled) ? (
+          <p className="li-live-news__waiting muted">No items in this feed right now.</p>
+        ) : liveNews && liveNews.items.length > 0 ? (
+          <div className="li-live-news__track">
+            {liveNews.items.map((it) => (
+              <a
+                key={it.url}
+                className="li-live-news__chip"
+                href={it.url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {it.title}
+              </a>
+            ))}
           </div>
-          {liveNews?.disabled ? (
-            <p className="li-live-news__waiting muted">RSS demo is off on FastAPI (set NEWS_DEMO_ENABLED).</p>
-          ) : newsFetchError && !liveNews ? (
-            <p className="li-live-news__waiting muted" role="alert">
-              Couldn’t load headlines — start FastAPI on port 8000. If it still fails, set{' '}
-              <code className="li-inline-code">FASTAPI_BASE_URL=http://127.0.0.1:8000</code> in{' '}
-              <code className="li-inline-code">frontend/.env</code> and restart <code className="li-inline-code">npm run dev</code>.
-            </p>
-          ) : newsLoading && !liveNews ? (
-            <p className="li-live-news__waiting muted">Pulling the latest items…</p>
-          ) : liveNews?.error === 'fetch_failed' || (liveNews && liveNews.items.length === 0 && !liveNews.disabled) ? (
-            <p className="li-live-news__waiting muted">No items in this feed right now.</p>
-          ) : liveNews && liveNews.items.length > 0 ? (
-            <div className="li-live-news__track">
-              {liveNews.items.map((it) => (
-                <a
-                  key={it.url}
-                  className="li-live-news__chip"
-                  href={it.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {it.title}
-                </a>
-              ))}
-            </div>
-          ) : (
-            <p className="li-live-news__waiting muted">Pulling the latest items…</p>
-          )}
-        </section>
-      ) : null}
-      {enableHeartBeatFilter ? (
-        <label className="heartbeat-feed-toggle">
-          <input
-            type="checkbox"
-            checked={heartBeatOnly}
-            onChange={(e) => setHeartBeatOnly(e.target.checked)}
-          />
-          Collapse HeartBeat · latest only
-        </label>
-      ) : null}
-      <FeedList
-        posts={displayPosts}
-        isAuthenticated={isAuthenticated}
-        viewerUserId={viewerId}
-        isGuestUser={isGuestUser}
-      />
-    </>
+        ) : (
+          <p className="li-live-news__waiting muted">Pulling the latest items…</p>
+        )}
+      </section>
+    ) : null;
+
+  return (
+    <div
+      className={
+        newsStripActive
+          ? 'li-feed-discovery-layout li-feed-discovery-layout--split'
+          : 'li-feed-discovery-layout'
+      }
+    >
+      <div className="li-feed-discovery-layout__main">
+        {enableHeartBeatFilter ? (
+          <label className="heartbeat-feed-toggle">
+            <input
+              type="checkbox"
+              checked={heartBeatOnly}
+              onChange={(e) => setHeartBeatOnly(e.target.checked)}
+            />
+            Collapse HeartBeat · latest only
+          </label>
+        ) : null}
+        <FeedList
+          posts={displayPosts}
+          isAuthenticated={isAuthenticated}
+          viewerUserId={viewerId}
+          isGuestUser={isGuestUser}
+        />
+      </div>
+      {newsSection}
+    </div>
   );
 }
