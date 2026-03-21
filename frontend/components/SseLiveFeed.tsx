@@ -10,6 +10,18 @@ type SsePostEvent = {
   created_at: string;
 };
 
+/** Same post can arrive via SSE and again from `router.refresh()` — keep one card per id. */
+function dedupePostsById(posts: FeedPost[]): FeedPost[] {
+  const seen = new Set<number>();
+  const out: FeedPost[] = [];
+  for (const p of posts) {
+    if (seen.has(p.id)) continue;
+    seen.add(p.id);
+    out.push(p);
+  }
+  return out;
+}
+
 export default function SseLiveFeed({
   viewerId,
   initialPosts,
@@ -28,10 +40,13 @@ export default function SseLiveFeed({
 
   const initialSig = useMemo(() => initialPosts.map((p) => p.id).join(','), [initialPosts]);
 
+  // Only sync when the id-list changes — not when the parent passes a new array ref with the same ids
+  // (avoids resetting `seenIds` while an SSE post is already shown, which could allow a duplicate).
   useEffect(() => {
-    setPosts(initialPosts);
+    setPosts(dedupePostsById(initialPosts));
     seenIds.current = new Set(initialPosts.map((p) => p.id));
-  }, [viewerId, initialSig, initialPosts]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- initialPosts read from render when initialSig/viewerId change
+  }, [viewerId, initialSig]);
 
   const eventSourceUrl = useMemo(() => '/api/stream', []);
 
@@ -56,7 +71,7 @@ export default function SseLiveFeed({
           initial_comments: []
         };
 
-        setPosts((prev) => [mapped, ...prev].slice(0, 30));
+        setPosts((prev) => dedupePostsById([mapped, ...prev]).slice(0, 30));
       } catch {
         // ignore malformed SSE payloads
       }

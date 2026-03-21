@@ -8,8 +8,9 @@ export default function CreatePost({ isAuthenticated }: { isAuthenticated: boole
   const router = useRouter();
   const [content, setContent] = useState('');
   const [status, setStatus] = useState<string | null>(null);
+  const [posting, setPosting] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const canSubmit = isAuthenticated && content.trim().length > 0;
+  const canSubmit = isAuthenticated && content.trim().length > 0 && !posting;
   const showToolbar = expanded || content.trim().length > 0;
 
   return (
@@ -38,23 +39,28 @@ export default function CreatePost({ isAuthenticated }: { isAuthenticated: boole
               className="li-btn-primary"
               onClick={() => {
                 void (async () => {
-                  if (!canSubmit) return;
+                  if (!canSubmit || posting) return;
+                  setPosting(true);
                   setStatus('Posting…');
-                  const res = await fetch('/api/posts', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'same-origin',
-                    body: JSON.stringify({ content: content.trim() })
-                  });
-                  const data = await res.json().catch(() => ({}));
-                  if (!res.ok) {
-                    setStatus(typeof data?.error === 'string' ? data.error : 'Failed to post');
-                    return;
+                  try {
+                    const res = await fetch('/api/posts', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      credentials: 'same-origin',
+                      body: JSON.stringify({ content: content.trim() })
+                    });
+                    const data = await res.json().catch(() => ({}));
+                    if (!res.ok) {
+                      setStatus(typeof data?.error === 'string' ? data.error : 'Failed to post');
+                      return;
+                    }
+                    setContent('');
+                    setStatus(null);
+                    setExpanded(false);
+                    router.refresh();
+                  } finally {
+                    setPosting(false);
                   }
-                  setContent('');
-                  setStatus(null);
-                  setExpanded(false);
-                  router.refresh();
                 })();
               }}
             >

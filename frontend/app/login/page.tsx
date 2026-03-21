@@ -12,6 +12,6 @@ function wantsRegisterTab(params: SearchParams | undefined): boolean {
 }
 
 export default function LoginPage({ searchParams }: { searchParams: SearchParams }) {
-  const initialMode = wantsRegisterTab(searchParams) ? 'register' : 'login';
-  return <AuthForm initialMode={initialMode} />;
+  const mode = wantsRegisterTab(searchParams) ? 'register' : 'login';
+  return <AuthForm mode={mode} />;
 }

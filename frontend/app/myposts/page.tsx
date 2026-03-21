@@ -110,9 +110,21 @@ export default async function MyPostsPage() {
 
   return (
     <main className="app-main app-main-feed">
+      <p className="muted" style={{ margin: '0 0 12px', fontSize: 14 }}>
+        <Link href="/feed" prefetch={false}>
+          My feed
+        </Link>
+        <span className="muted" style={{ margin: '0 8px', opacity: 0.5 }}>
+          ·
+        </span>
+        <Link href="/" prefetch={false}>
+          Home
+        </Link>
+      </p>
       <h1>My posts</h1>
       <p className="muted" style={{ margin: '0 0 16px', fontSize: 14 }}>
-        Only posts you authored — each account sees its own list.
+        Only posts you authored — open <Link href="/feed">My feed</Link> to like and comment on
+        others&apos; posts.
       </p>
       {showFeedAuthCta ? <FeedAuthBar /> : null}
       {dbError ? (

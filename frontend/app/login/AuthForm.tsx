@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { DEMO_AUTH_BLURB } from '@/lib/demoAccounts';
 import { PASSWORD_MAX, USERNAME_MAX, USERNAME_MIN } from '@/lib/authLimits';
 
@@ -8,23 +9,18 @@ type Mode = 'login' | 'register';
 
 type Feedback = { message: string; variant: 'info' | 'error' };
 
-export default function AuthForm({ initialMode }: { initialMode: Mode }) {
-  const [mode, setMode] = useState<Mode>(initialMode);
+/**
+ * Tab targets use real URLs (`<a>`) so mode always matches the address bar — works with custom
+ * `server.ts` and `router.refresh()` from guest bootstrap; no reliance on client `replace()`.
+ */
+export default function AuthForm({ mode }: { mode: Mode }) {
+  const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [headline, setHeadline] = useState('');
   const [signInAfterRegister, setSignInAfterRegister] = useState(true);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
-
-  useEffect(() => {
-    setMode(initialMode);
-  }, [initialMode]);
-
-  const switchMode = useCallback((next: Mode) => {
-    setMode(next);
-    setFeedback(null);
-  }, []);
 
   const onLogin = () => {
     (async () => {
@@ -107,7 +103,7 @@ export default function AuthForm({ initialMode }: { initialMode: Mode }) {
           message: 'Account created. Sign in with your username and password.',
           variant: 'info'
         });
-        switchMode('login');
+        router.replace('/login', { scroll: false });
         setPassword('');
         return;
       }
@@ -127,24 +123,24 @@ export default function AuthForm({ initialMode }: { initialMode: Mode }) {
       </div>
 
       <div className="auth-mode-row" role="tablist" aria-label="Sign in or register">
-        <button
-          type="button"
+        <a
+          href="/login"
           role="tab"
           aria-selected={mode === 'login'}
           className={`auth-mode-btn${mode === 'login' ? ' auth-mode-btn-active' : ''}`}
-          onClick={() => switchMode('login')}
+          onClick={() => setFeedback(null)}
         >
           Sign in
-        </button>
-        <button
-          type="button"
+        </a>
+        <a
+          href="/login?register=1"
           role="tab"
           aria-selected={mode === 'register'}
           className={`auth-mode-btn${mode === 'register' ? ' auth-mode-btn-active' : ''}`}
-          onClick={() => switchMode('register')}
+          onClick={() => setFeedback(null)}
         >
           Create account
-        </button>
+        </a>
       </div>
 
       <div className="app-card auth-form-card" style={{ marginTop: 16 }}>

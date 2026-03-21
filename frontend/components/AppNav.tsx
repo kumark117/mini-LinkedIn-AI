@@ -57,6 +57,9 @@ export default async function AppNav() {
                 </Link>
               </>
             ) : null}
+            <Link href="/feed" prefetch={false}>
+              My feed
+            </Link>
             <Link href="/myposts" prefetch={false}>
               My posts
             </Link>
