@@ -4,11 +4,11 @@ import { prisma } from '@/lib/db';
 import { AUTH_COOKIE_NAME, verifyAuthToken } from '@/lib/auth';
 import ServerClock from '@/components/ServerClock';
 import SignOutButton from '@/components/SignOutButton';
+import NavAuthButtons from '@/components/NavAuthButtons';
 
 export default async function AppNav() {
   const token = cookies().get(AUTH_COOKIE_NAME)?.value;
   const auth = token ? verifyAuthToken(token) : null;
-  const loggedIn = Boolean(auth?.userId);
   const showDbReset = process.env.ALLOW_DB_RESET === 'true';
 
   let username: string | null = null;
@@ -24,7 +24,8 @@ export default async function AppNav() {
     }
   }
 
-  const isGuestUser = username === 'guest';
+  /* Require DB-backed username so stale JWTs after reset don’t look “logged in” until guest re-issues. */
+  const loggedIn = Boolean(username);
 
   return (
     <nav className="app-nav" aria-label="Main">
@@ -47,16 +48,6 @@ export default async function AppNav() {
         ) : null}
         {loggedIn ? (
           <>
-            {isGuestUser ? (
-              <>
-                <Link href="/login" className="app-nav-auth-btn app-nav-auth-btn--outline">
-                  Sign in
-                </Link>
-                <Link href="/login?register=1" className="app-nav-auth-btn app-nav-auth-btn--solid">
-                  Register
-                </Link>
-              </>
-            ) : null}
             <Link href="/feed/following" prefetch={false} title="Posts only from people you follow">
               Following
             </Link>
@@ -69,17 +60,10 @@ export default async function AppNav() {
             <Link href="/profile" prefetch={false}>
               Profile
             </Link>
-            {!isGuestUser && username ? <SignOutButton /> : null}
+            {username ? <SignOutButton /> : null}
           </>
         ) : (
-          <>
-            <Link href="/login" className="app-nav-auth-btn app-nav-auth-btn--outline">
-              Sign in
-            </Link>
-            <Link href="/login?register=1" className="app-nav-auth-btn app-nav-auth-btn--solid">
-              Register
-            </Link>
-          </>
+          <NavAuthButtons />
         )}
       </div>
     </nav>

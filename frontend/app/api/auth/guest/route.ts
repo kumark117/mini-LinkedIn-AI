@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/db';
 import { AUTH_COOKIE_NAME, signAuthToken, verifyAuthToken } from '@/lib/auth';
+import { isUserIdInDatabase } from '@/lib/sessionUser';
 
 export const runtime = 'nodejs';
 
@@ -29,7 +30,11 @@ export async function POST(req: Request) {
     if (existing) {
       const auth = verifyAuthToken(existing);
       if (auth?.userId) {
-        return NextResponse.json({ ok: true, skipped: true });
+        const stillThere = await isUserIdInDatabase(auth.userId);
+        if (stillThere) {
+          return NextResponse.json({ ok: true, skipped: true });
+        }
+        /* JWT still verifies but user row is gone (e.g. prisma migrate reset) — issue guest. */
       }
     }
   }
