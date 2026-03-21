@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id         Int                @id @default(autoincrement())
+  name       String
+  headline   String
+
+  credentials UserCredential?
+  posts       Post[]
+  likes       Like[]
+  comments    Comment[]
+
+  @@map("users")
+}
+
+model UserCredential {
+  userId       Int     @id @map("user_id")
+  username     String  @unique
+  passwordHash String? @map("password_hash")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_credentials")
+}
+
+model Post {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  likes    Like[]
+  comments Comment[]
+
+  @@index([userId])
+  @@map("posts")
+}
+
+model Like {
+  id     Int @id @default(autoincrement())
+  userId Int @map("user_id")
+  postId Int @map("post_id")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([postId])
+  @@map("likes")
+}
+
+model Comment {
+  id      Int @id @default(autoincrement())
+  postId  Int @map("post_id")
+  userId  Int @map("user_id")
+  content String
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@map("comments")
+}
+

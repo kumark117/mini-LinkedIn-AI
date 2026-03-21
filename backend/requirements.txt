@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+asyncpg
+openai
+langgraph
+langchain-core
+python-dotenv
+

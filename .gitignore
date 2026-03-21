@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+
+# Next.js
+.next/
+frontend/.next/
+out/
+frontend/out/
+
+# Env & secrets (never commit real credentials)
+.env
+.env.*
+!.env.example
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
+# Logs & debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# TypeScript / tooling
+*.tsbuildinfo
+
+# Prisma
+frontend/prisma/dev.db
+frontend/prisma/dev.db-journal
+
+# Test / coverage
+coverage/
+.nyc_output/
+
+# Misc
+*.local
