@@ -1,5 +1,6 @@
+import os
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,6 +14,20 @@ from app.routers.posts_stream import router as posts_stream_router
 root_dir = Path(__file__).resolve().parents[2]
 load_dotenv(root_dir / '.env')
 
+
+def _cors_allow_origins() -> List[str]:
+    """Local dev defaults; on Render set CORS_ORIGINS to your Next.js URL (comma-separated)."""
+    base = ['http://localhost:3000', 'http://127.0.0.1:3000']
+    extra = os.environ.get('CORS_ORIGINS', '').strip()
+    if not extra:
+        return base
+    for part in extra.split(','):
+        o = part.strip()
+        if o and o not in base:
+            base.append(o)
+    return base
+
+
 app = FastAPI(
     title="Mini-LinkedIn AI (FastAPI)",
     openapi_tags=[
@@ -23,10 +38,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000"
-    ],
+    allow_origins=_cors_allow_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
