@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import AiFeatureDecor from '@/components/AiFeatureDecor';
 
 export default function CreatePost({ isAuthenticated }: { isAuthenticated: boolean }) {
   const router = useRouter();
@@ -11,7 +12,9 @@ export default function CreatePost({ isAuthenticated }: { isAuthenticated: boole
   const [posting, setPosting] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const canSubmit = isAuthenticated && content.trim().length > 0 && !posting;
-  const showToolbar = expanded || content.trim().length > 0;
+  /** Always show Post / Enhance when signed in so AI isn’t hidden until focus or typing. */
+  const showToolbar = isAuthenticated;
+  const tallComposer = expanded || content.trim().length > 0;
 
   const submitPost = async () => {
     if (!canSubmit || posting) return;
@@ -61,9 +64,9 @@ export default function CreatePost({ isAuthenticated }: { isAuthenticated: boole
           placeholder={isAuthenticated ? 'Start a post…' : 'Sign in to post'}
           title={isAuthenticated ? 'Enter to post · Shift+Enter for a new line' : undefined}
           disabled={!isAuthenticated}
-          rows={showToolbar ? 3 : 1}
+          rows={tallComposer ? 3 : 1}
         />
-        {showToolbar && isAuthenticated ? (
+        {showToolbar ? (
           <div className="li-composer__toolbar">
             <button
               type="button"
@@ -75,12 +78,12 @@ export default function CreatePost({ isAuthenticated }: { isAuthenticated: boole
             </button>
             <button
               type="button"
-              className="li-btn-ghost"
+              className="li-ai-feature-btn"
               disabled={!content.trim()}
               onClick={() => {
                 void (async () => {
                   if (!content.trim()) return;
-                  setStatus('Enhancing…');
+                  setStatus('Enhancing with AI…');
                   const res = await fetch('/api/ai/enhance', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -97,7 +100,8 @@ export default function CreatePost({ isAuthenticated }: { isAuthenticated: boole
                 })();
               }}
             >
-              Enhance with AI
+              <AiFeatureDecor />
+              <span className="li-ai-feature-btn__text">Enhance with AI</span>
             </button>
           </div>
         ) : null}

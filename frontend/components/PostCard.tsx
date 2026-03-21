@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { formatFeedTimestamp } from '@/lib/formatFeedDate';
+import ClientLocalTime from '@/components/ClientLocalTime';
 import type { FeedPost } from './FeedList';
 import CommentsPanel from './CommentsPanel';
 import FollowAuthor from './FollowAuthor';
@@ -66,11 +66,7 @@ export default function PostCard({
   return (
     <article className="li-post">
       <div className="li-post__body li-post__body--merged">
-        {post.created_at ? (
-          <span className="li-post__time" suppressHydrationWarning title="Your local time">
-            {formatFeedTimestamp(post.created_at)}
-          </span>
-        ) : null}
+        {post.created_at ? <ClientLocalTime iso={post.created_at} className="li-post__time" /> : null}
         {post.created_at ? <span className="li-post__time-sep"> · </span> : null}
         {showAuthor ? (
           <>

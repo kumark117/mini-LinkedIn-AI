@@ -60,7 +60,15 @@ export default async function FollowingFeedPage() {
           My posts
         </Link>
       </p>
-      <h1>Following</h1>
+      <h1 style={{ marginBottom: 8 }}>Following</h1>
+      {!dbError && isAuthenticated ? (
+        <p className="muted" style={{ margin: '0 0 12px', fontSize: 14 }}>
+          <strong style={{ fontWeight: 600, color: 'var(--foreground, inherit)' }}>
+            {followedIds.length}
+          </strong>{' '}
+          {followedIds.length === 1 ? 'person' : 'people'} you follow
+        </p>
+      ) : null}
       <div className="feed-mode-explainer feed-mode-explainer--primary" role="note">
         <strong>Your subscriptions</strong> — only people you’ve followed. New posts from them land here (and
         in <Link href="/feed">Discover</Link> too, because Discover shows the whole network).

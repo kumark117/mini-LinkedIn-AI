@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { useState } from 'react';
-import { formatFeedTimestamp } from '@/lib/formatFeedDate';
+import ClientLocalTime from '@/components/ClientLocalTime';
 import { useWsComments } from './WsCommentsProvider';
 
 export default function CommentsPanel({
@@ -64,9 +64,7 @@ export default function CommentsPanel({
         <div className="li-comment-list">
           {comments.slice(0, 8).map((c) => (
             <div key={c.id} className="li-comment-row">
-              <span className="li-comment-row__time" suppressHydrationWarning title="Your local time">
-                {formatFeedTimestamp(c.created_at)}
-              </span>
+              <ClientLocalTime iso={c.created_at} className="li-comment-row__time" />
               <span className="li-comment-row__text">{c.content}</span>
             </div>
           ))}

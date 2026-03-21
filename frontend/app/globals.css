@@ -436,6 +436,84 @@ textarea.app-input {
   margin-bottom: 10px;
 }
 
+/* —— AI feature CTAs (Summarize with AI, Enhance with AI) —— */
+.li-ai-feature-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 10px 16px 10px 12px;
+  border: 2px solid #ca8a04;
+  border-radius: 14px;
+  background: linear-gradient(165deg, #fefce8 0%, #fef08a 45%, #fde047 100%);
+  color: #713f12;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: 0 3px 12px rgba(202, 138, 4, 0.28);
+  text-decoration: none;
+}
+
+.li-ai-feature-btn:hover:not(:disabled) {
+  background: linear-gradient(165deg, #fef9c3 0%, #fde047 50%, #facc15 100%);
+  color: #422006;
+  border-color: #a16207;
+}
+
+.li-ai-feature-btn:focus-visible {
+  outline: 3px solid #facc15;
+  outline-offset: 2px;
+}
+
+.li-ai-feature-btn:disabled {
+  opacity: 0.68;
+  cursor: not-allowed;
+}
+
+.li-ai-feature-btn__lead {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.li-ai-sparkle {
+  flex-shrink: 0;
+  color: #b45309;
+  filter: drop-shadow(0 1px 1px rgba(180, 83, 9, 0.35));
+}
+
+.li-ai-new-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px 3px 7px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #fff;
+  background: linear-gradient(135deg, #ea580c 0%, #dc2626 100%);
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  line-height: 1;
+  box-shadow: 0 1px 3px rgba(220, 38, 38, 0.35);
+}
+
+.li-ai-new-pill__glyph {
+  font-size: 11px;
+  line-height: 1;
+  opacity: 0.95;
+}
+
+.li-ai-feature-btn__text {
+  text-align: left;
+}
+
 .li-text-btn {
   margin: 0;
   padding: 0;
@@ -810,6 +888,11 @@ textarea.app-input {
   font-size: 10px;
   color: var(--text-muted);
   flex-shrink: 0;
+}
+
+time.li-post__time,
+time.li-comment-row__time {
+  font-style: normal;
 }
 
 .li-comment-row__text {

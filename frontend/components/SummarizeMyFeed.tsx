@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import AiFeatureDecor from '@/components/AiFeatureDecor';
 
 export default function SummarizeMyFeed() {
   const [loading, setLoading] = useState(false);
@@ -12,6 +13,8 @@ export default function SummarizeMyFeed() {
       <button
         type="button"
         disabled={loading}
+        className="li-ai-feature-btn"
+        aria-busy={loading}
         onClick={() => {
           void (async () => {
             setLoading(true);
@@ -35,9 +38,9 @@ export default function SummarizeMyFeed() {
             }
           })();
         }}
-        className="li-text-btn"
       >
-        {loading ? 'Summarizing…' : 'Summarize my posts'}
+        <AiFeatureDecor />
+        <span className="li-ai-feature-btn__text">{loading ? 'Summarizing with AI…' : 'Summarize with AI'}</span>
       </button>
 
       {error ? (
