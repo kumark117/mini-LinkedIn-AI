@@ -1,3 +1,5 @@
+import { getServerFastApiBaseUrl } from '@/lib/serverFastApiBaseUrl';
+
 export type SsePostEvent = {
   id: number;
   user_id: number;
@@ -9,9 +11,8 @@ export type SsePostEvent = {
 
 /** Fan-out to FastAPI SSE hub (optional; requires FASTAPI_BASE_URL). */
 async function notifyFastApiSseClients(post: SsePostEvent): Promise<void> {
-  const raw = process.env.FASTAPI_BASE_URL?.trim();
-  if (!raw) return;
-  const base = raw.replace(/\/$/, '');
+  const base = getServerFastApiBaseUrl();
+  if (!base) return;
   const secret = process.env.SSE_BROADCAST_SECRET?.trim();
   try {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };

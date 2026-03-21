@@ -99,6 +99,7 @@ export default async function FeedPage() {
               followedUserIds={followedIds}
               isGuestUser={isGuestUser}
               enableHeartBeatFilter
+              showLiveNewsStrip
             />
           </div>
         </WsCommentsProvider>

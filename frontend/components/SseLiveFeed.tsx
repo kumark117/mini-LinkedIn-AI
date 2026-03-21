@@ -11,6 +11,29 @@ type SsePostEvent = {
   author_username?: string | null;
 };
 
+type SseNewsEvent = {
+  items: { title: string; url: string }[];
+  feed_label?: string;
+  feed_url?: string;
+  /** ISO-8601 UTC from FastAPI when RSS was last fetched (HTTP + SSE). */
+  updated_at?: string;
+  disabled?: boolean;
+  error?: string;
+};
+
+function formatNewsAge(iso?: string): string {
+  if (!iso) return '';
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return '';
+  const sec = Math.round((Date.now() - t) / 1000);
+  if (sec < 0) return 'just now';
+  if (sec < 8) return 'just now';
+  if (sec < 60) return `${sec}s ago`;
+  const m = Math.floor(sec / 60);
+  if (m < 60) return `${m}m ago`;
+  return new Date(t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+
 /** Same post can arrive via SSE and again from `router.refresh()` — keep one card per id. */
 function dedupePostsById(posts: FeedPost[]): FeedPost[] {
   const seen = new Set<number>();
@@ -46,7 +69,8 @@ export default function SseLiveFeed({
   sseOnlyUserIds,
   followedUserIds,
   isGuestUser,
-  enableHeartBeatFilter = false
+  enableHeartBeatFilter = false,
+  showLiveNewsStrip = false
 }: {
   /** When this changes (switch accounts), reset list even if post IDs are unchanged — liked_by_me differs per user. */
   viewerId: number | null;
@@ -64,8 +88,15 @@ export default function SseLiveFeed({
   isGuestUser: boolean;
   /** Discover / Following: optional collapse of HeartBeat spam to a single latest line (default on). */
   enableHeartBeatFilter?: boolean;
+  /** Discover: show RSS headlines from FastAPI SSE (`event: news`). Requires NEXT_PUBLIC_FASTAPI_SSE_ORIGIN. */
+  showLiveNewsStrip?: boolean;
 }) {
   const [posts, setPosts] = useState<FeedPost[]>(initialPosts);
+  const [liveNews, setLiveNews] = useState<SseNewsEvent | null>(null);
+  const [newsLoading, setNewsLoading] = useState(true);
+  const [newsFetchError, setNewsFetchError] = useState(false);
+  /** Brief highlight when SSE pushes a new headline batch (real-time feedback). */
+  const [newsJustUpdated, setNewsJustUpdated] = useState(false);
   const [heartBeatOnly, setHeartBeatOnly] = useState(true);
   const seenIds = useRef<Set<number>>(new Set(initialPosts.map((p) => p.id)));
   const followedRef = useRef(followedUserIds);
@@ -83,13 +114,62 @@ export default function SseLiveFeed({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- initialPosts read from render when initialSig/viewerId change
   }, [viewerId, initialSig]);
 
+  const fastApiOrigin = useMemo(() => process.env.NEXT_PUBLIC_FASTAPI_SSE_ORIGIN?.trim() ?? '', []);
+
   const eventSourceUrl = useMemo(() => {
-    const origin = process.env.NEXT_PUBLIC_FASTAPI_SSE_ORIGIN?.trim();
-    if (origin) {
-      return `${origin.replace(/\/$/, '')}/api/stream/posts`;
+    if (fastApiOrigin) {
+      return `${fastApiOrigin.replace(/\/$/, '')}/api/stream/posts`;
     }
     return '/api/stream';
-  }, []);
+  }, [fastApiOrigin]);
+
+  const hasFastApiSse = Boolean(fastApiOrigin);
+  const newsStripActive = showLiveNewsStrip && hasFastApiSse;
+
+  /** HTTP snapshot — works even when SSE named events fail cross-origin; SSE still pushes updates. */
+  useEffect(() => {
+    if (!newsStripActive) return;
+    let cancelled = false;
+    setNewsLoading(true);
+    setNewsFetchError(false);
+    fetch('/api/news/demo', { cache: 'no-store' })
+      .then((res) => {
+        if (!res.ok) throw new Error(String(res.status));
+        return res.json() as Promise<SseNewsEvent>;
+      })
+      .then((data) => {
+        if (cancelled) return;
+        if (data?.disabled) {
+          setLiveNews({ items: [], disabled: true });
+          return;
+        }
+        setLiveNews(data);
+        setNewsJustUpdated(false);
+      })
+      .catch(() => {
+        if (!cancelled) setNewsFetchError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setNewsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [newsStripActive]);
+
+  /** Recompute "Xs ago" label while the strip is visible. */
+  const [newsAgeTick, setNewsAgeTick] = useState(0);
+  useEffect(() => {
+    if (!liveNews?.updated_at) return;
+    const id = window.setInterval(() => setNewsAgeTick((n) => n + 1), 12000);
+    return () => window.clearInterval(id);
+  }, [liveNews?.updated_at]);
+
+  useEffect(() => {
+    if (!newsJustUpdated) return;
+    const id = window.setTimeout(() => setNewsJustUpdated(false), 1000);
+    return () => window.clearTimeout(id);
+  }, [newsJustUpdated]);
 
   useEffect(() => {
     const es = new EventSource(eventSourceUrl);
@@ -124,12 +204,27 @@ export default function SseLiveFeed({
       }
     };
 
+    const onNews = (ev: MessageEvent) => {
+      try {
+        setLiveNews(JSON.parse(ev.data) as SseNewsEvent);
+        setNewsLoading(false);
+        setNewsFetchError(false);
+        setNewsJustUpdated(true);
+      } catch {
+        // ignore malformed SSE payloads
+      }
+    };
+
     es.addEventListener('post', onPost);
+    if (newsStripActive) {
+      es.addEventListener('news', onNews);
+    }
     return () => {
       es.removeEventListener('post', onPost);
+      es.removeEventListener('news', onNews);
       es.close();
     };
-  }, [eventSourceUrl, viewerId]);
+  }, [eventSourceUrl, viewerId, newsStripActive]);
 
   const displayPosts = useMemo(() => {
     if (!enableHeartBeatFilter || !heartBeatOnly) return posts;
@@ -138,6 +233,65 @@ export default function SseLiveFeed({
 
   return (
     <>
+      {newsStripActive ? (
+        <section
+          className={`li-live-news${newsJustUpdated ? ' li-live-news--fresh' : ''}`}
+          aria-label="Live headlines demo"
+          data-news-age-tick={newsAgeTick}
+        >
+          <div className="li-live-news__bar">
+            <span className="li-live-news__title">
+              <span className="li-live-news__dot" aria-hidden />
+              Live headlines
+            </span>
+            <span className="li-live-news__meta">
+              {liveNews?.feed_label ?? 'RSS via FastAPI'}
+              {liveNews?.updated_at ? (
+                <>
+                  {' '}
+                  <span className="muted" title={liveNews.updated_at}>
+                    · {formatNewsAge(liveNews.updated_at)}
+                  </span>
+                </>
+              ) : null}
+              {newsJustUpdated ? (
+                <span className="li-live-news__sse-badge" title="New batch from SSE">
+                  SSE
+                </span>
+              ) : null}
+            </span>
+          </div>
+          {liveNews?.disabled ? (
+            <p className="li-live-news__waiting muted">RSS demo is off on FastAPI (set NEWS_DEMO_ENABLED).</p>
+          ) : newsFetchError && !liveNews ? (
+            <p className="li-live-news__waiting muted" role="alert">
+              Couldn’t load headlines — start FastAPI on port 8000. If it still fails, set{' '}
+              <code className="li-inline-code">FASTAPI_BASE_URL=http://127.0.0.1:8000</code> in{' '}
+              <code className="li-inline-code">frontend/.env</code> and restart <code className="li-inline-code">npm run dev</code>.
+            </p>
+          ) : newsLoading && !liveNews ? (
+            <p className="li-live-news__waiting muted">Pulling the latest items…</p>
+          ) : liveNews?.error === 'fetch_failed' || (liveNews && liveNews.items.length === 0 && !liveNews.disabled) ? (
+            <p className="li-live-news__waiting muted">No items in this feed right now.</p>
+          ) : liveNews && liveNews.items.length > 0 ? (
+            <div className="li-live-news__track">
+              {liveNews.items.map((it) => (
+                <a
+                  key={it.url}
+                  className="li-live-news__chip"
+                  href={it.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {it.title}
+                </a>
+              ))}
+            </div>
+          ) : (
+            <p className="li-live-news__waiting muted">Pulling the latest items…</p>
+          )}
+        </section>
+      ) : null}
       {enableHeartBeatFilter ? (
         <label className="heartbeat-feed-toggle">
           <input

@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { z } from 'zod';
 
 import { AUTH_COOKIE_NAME, verifyAuthToken } from '@/lib/auth';
+import { getServerFastApiBaseUrl } from '@/lib/serverFastApiBaseUrl';
 
 const SummarizeBodySchema = z
   .object({
@@ -13,7 +14,7 @@ const SummarizeBodySchema = z
 export const runtime = 'nodejs';
 
 export async function POST(req: Request) {
-  const baseUrl = process.env.FASTAPI_BASE_URL;
+  const baseUrl = getServerFastApiBaseUrl();
   if (!baseUrl) {
     return NextResponse.json({ error: 'Missing FASTAPI_BASE_URL' }, { status: 500 });
   }

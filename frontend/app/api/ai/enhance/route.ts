@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { zodErrorMessage } from '@/lib/zodErrorMessage';
+import { getServerFastApiBaseUrl } from '@/lib/serverFastApiBaseUrl';
 
 const EnhanceBodySchema = z.object({
   input: z.string().min(1).max(5000)
@@ -9,7 +10,7 @@ const EnhanceBodySchema = z.object({
 export const runtime = 'nodejs';
 
 export async function POST(req: Request) {
-  const baseUrl = process.env.FASTAPI_BASE_URL;
+  const baseUrl = getServerFastApiBaseUrl();
   if (!baseUrl) {
     return NextResponse.json({ error: 'Missing FASTAPI_BASE_URL' }, { status: 500 });
   }

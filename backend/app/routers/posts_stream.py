@@ -16,6 +16,14 @@ router = APIRouter(tags=["stream"])
 
 _queues: List[asyncio.Queue[bytes]] = []
 _lock = asyncio.Lock()
+# Last news payload (full SSE frame) sent to new subscribers immediately for demo UX.
+_last_news_frame: Optional[bytes] = None
+# Same payload as dict — used by GET /api/news/demo and for JSON round-trip without re-parsing SSE.
+_last_news_payload: Optional[dict] = None
+
+
+def get_last_news_payload() -> Optional[dict]:
+    return _last_news_payload
 
 
 class PostBroadcastBody(BaseModel):
@@ -41,6 +49,22 @@ async def _unregister_queue(q: asyncio.Queue[bytes]) -> None:
             pass
 
 
+async def broadcast_news_to_sse_clients(payload: dict) -> None:
+    """Push `event: news` (demo RSS headlines) to all SSE clients."""
+    global _last_news_frame, _last_news_payload
+    _last_news_payload = payload
+    line = f"event: news\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
+    encoded = line.encode("utf-8")
+    _last_news_frame = encoded
+    async with _lock:
+        targets = list(_queues)
+    for q in targets:
+        try:
+            q.put_nowait(encoded)
+        except asyncio.QueueFull:
+            pass
+
+
 async def broadcast_post_to_sse_clients(payload: dict) -> None:
     line = f"event: post\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
     encoded = line.encode("utf-8")
@@ -54,6 +78,9 @@ async def broadcast_post_to_sse_clients(payload: dict) -> None:
 
 
 async def _sse_generator(request: Request, q: asyncio.Queue[bytes]) -> AsyncIterator[str]:
+    snap = _last_news_frame
+    if snap:
+        yield snap.decode("utf-8")
     try:
         while True:
             if await request.is_disconnected():
