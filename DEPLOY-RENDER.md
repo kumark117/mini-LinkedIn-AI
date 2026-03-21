@@ -67,7 +67,25 @@ Then go back and **confirm `CORS_ORIGINS` on the API** matches the **web** URL e
 
 ## If something breaks
 
-- **DB / Prisma**: Ensure `DATABASE_URL` is set for the **web** build **and** runtime (migrations run at build).
+### `RuntimeError: Missing DATABASE_URL` (Python / FastAPI)
+
+The **API web service** must have **`DATABASE_URL`** in its **Environment** tab at runtime. If it’s missing, startup fails before uvicorn serves traffic.
+
+**Fix:**
+
+1. Open [Render Dashboard](https://dashboard.render.com) → your **PostgreSQL** instance.
+2. Copy **Internal Database URL** (preferred if API and DB are on Render in the same region) or **External Database URL**.
+3. Open your **FastAPI** web service → **Environment** → **Add environment variable**:
+   - **Key:** `DATABASE_URL`  
+   - **Value:** paste the URL (must be the full `postgresql://…` string).
+
+**Or** use Render’s **database link**: on the API service, find **Connected databases** / **Link database** (wording varies) and attach your Postgres — Render will inject `DATABASE_URL` automatically.
+
+If you used a **Blueprint**, confirm the deploy actually created the database and that the API service still lists `DATABASE_URL` (Blueprint sync can miss if the DB was deleted or renamed). Re-link or paste the URL manually.
+
+Then **Save** and **Manual Deploy** → **Deploy latest commit**.
+
+- **DB / Prisma (Next.js)**: The **frontend** web service must have **`DATABASE_URL`** in **Environment** (same Postgres as the API). It is used at **build time** (`prisma migrate deploy` in the build command) and at runtime. If it’s missing, the build fails or migrations can’t run. Link the database to that service or paste **Internal Database URL** from the Postgres dashboard.
 - **CORS / SSE**: `CORS_ORIGINS` on FastAPI must include the **browser origin** of the Next app (`https://…onrender.com`).
 - **asyncpg / SSL**: If the API crashes on DB connect, try appending `?ssl=true` or use Render’s documented SSL parameters for external URLs.
 - **Secrets**: Never commit `.env`; set variables only in Render.

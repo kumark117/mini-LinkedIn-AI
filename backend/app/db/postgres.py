@@ -4,10 +4,22 @@ from typing import Any, Dict, List, Optional
 import asyncpg
 
 
+def _resolve_database_url() -> str:
+    """Render injects DATABASE_URL when Postgres is linked; some setups use other keys."""
+    for key in ("DATABASE_URL", "POSTGRES_URL", "POSTGRES_PRISMA_URL"):
+        raw = os.environ.get(key)
+        if raw and raw.strip():
+            return raw.strip()
+    raise RuntimeError(
+        "Missing database URL: set DATABASE_URL on this web service. "
+        "On Render: open your PostgreSQL → copy Internal Database URL → "
+        "FastAPI service → Environment → add DATABASE_URL = (paste), then redeploy. "
+        "Or use “Link database” on the service so Render injects DATABASE_URL."
+    )
+
+
 async def create_pg_pool() -> asyncpg.Pool:
-    database_url = os.environ.get("DATABASE_URL")
-    if not database_url:
-        raise RuntimeError("Missing DATABASE_URL")
+    database_url = _resolve_database_url()
 
     # Small pool sizes for a demo.
     return await asyncpg.create_pool(dsn=database_url, min_size=1, max_size=5)
