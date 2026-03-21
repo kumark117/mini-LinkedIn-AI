@@ -83,7 +83,13 @@ export default function SseLiveFeed({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- initialPosts read from render when initialSig/viewerId change
   }, [viewerId, initialSig]);
 
-  const eventSourceUrl = useMemo(() => '/api/stream', []);
+  const eventSourceUrl = useMemo(() => {
+    const origin = process.env.NEXT_PUBLIC_FASTAPI_SSE_ORIGIN?.trim();
+    if (origin) {
+      return `${origin.replace(/\/$/, '')}/api/stream/posts`;
+    }
+    return '/api/stream';
+  }, []);
 
   useEffect(() => {
     const es = new EventSource(eventSourceUrl);

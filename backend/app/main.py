@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 
 from app.db.postgres import create_pg_pool
 from app.routers.ai import router as ai_router
+from app.routers.posts_stream import router as posts_stream_router
 
 root_dir = Path(__file__).resolve().parents[2]
 load_dotenv(root_dir / '.env')
@@ -24,6 +25,7 @@ app.add_middleware(
 )
 
 app.include_router(ai_router)
+app.include_router(posts_stream_router)
 
 
 @app.on_event("startup")
