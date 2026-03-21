@@ -49,9 +49,11 @@ export default async function MyPostsPage() {
   let isGuestUser = false;
 
   let followedIds: number[] = [];
+  let followersCount = 0;
+  let followingCount = 0;
 
   try {
-    const [posts, cred, followRows] = await Promise.all([
+    const [posts, cred, followRows, nFollowers, nFollowing] = await Promise.all([
       prisma.post.findMany({
         where: { userId: myUserId },
         take: 30,
@@ -87,9 +89,13 @@ export default async function MyPostsPage() {
       prisma.follow.findMany({
         where: { followerId: myUserId },
         select: { followingId: true }
-      })
+      }),
+      prisma.follow.count({ where: { followingId: myUserId } }),
+      prisma.follow.count({ where: { followerId: myUserId } })
     ]);
 
+    followersCount = nFollowers;
+    followingCount = nFollowing;
     followedIds = followRows.map((r) => r.followingId);
     isGuestUser = cred?.username === 'guest';
     const myUsername = cred?.username ?? null;
@@ -136,6 +142,17 @@ export default async function MyPostsPage() {
         </Link>
       </p>
       <h1>My posts</h1>
+      <p className="muted" style={{ margin: '0 0 8px', fontSize: 14 }}>
+        <strong style={{ fontWeight: 600, color: 'var(--foreground, inherit)' }}>
+          {followersCount}
+        </strong>{' '}
+        {followersCount === 1 ? 'follower' : 'followers'}
+        {' · '}
+        <strong style={{ fontWeight: 600, color: 'var(--foreground, inherit)' }}>
+          {followingCount}
+        </strong>{' '}
+        following
+      </p>
       <p className="muted" style={{ margin: '0 0 16px', fontSize: 14 }}>
         Only posts you authored — open <Link href="/feed">Discover</Link> to browse everyone, or{' '}
         <Link href="/feed/following">Following</Link> for people you subscribe to.

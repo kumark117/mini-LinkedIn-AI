@@ -13,15 +13,19 @@ export default async function ProfilePage() {
 
   if (!auth?.userId) redirect('/login');
 
-  const user = await prisma.user.findUnique({
-    where: { id: auth.userId },
-    select: {
-      id: true,
-      name: true,
-      headline: true,
-      credentials: { select: { username: true } }
-    }
-  });
+  const [user, followersCount, followingCount] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: auth.userId },
+      select: {
+        id: true,
+        name: true,
+        headline: true,
+        credentials: { select: { username: true } }
+      }
+    }),
+    prisma.follow.count({ where: { followingId: auth.userId } }),
+    prisma.follow.count({ where: { followerId: auth.userId } })
+  ]);
 
   if (!user) redirect('/login');
 
@@ -48,7 +52,18 @@ export default async function ProfilePage() {
           My posts
         </Link>
       </p>
-      <h1 style={{ margin: '0 0 16px', fontSize: 26 }}>Profile</h1>
+      <h1 style={{ margin: '0 0 8px', fontSize: 26 }}>Profile</h1>
+      <p className="muted" style={{ margin: '0 0 16px', fontSize: 14 }}>
+        <strong style={{ fontWeight: 600, color: 'var(--foreground, inherit)' }}>
+          {followersCount}
+        </strong>{' '}
+        {followersCount === 1 ? 'follower' : 'followers'}
+        {' · '}
+        <strong style={{ fontWeight: 600, color: 'var(--foreground, inherit)' }}>
+          {followingCount}
+        </strong>{' '}
+        following
+      </p>
 
       <div className="app-card" style={{ maxWidth: 480 }}>
         {username ? (
