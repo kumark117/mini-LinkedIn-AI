@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { AUTH_COOKIE_NAME, verifyAuthToken } from '@/lib/auth';
 import { broadcastNewPost } from '@/lib/sse';
+import { broadcastLikeUpdate } from '@/lib/wsLikeBroadcast';
 
 export const runtime = 'nodejs';
 
@@ -74,6 +75,8 @@ export async function POST(req: Request) {
 
     const likes_count = await prisma.like.count({ where: { postId: post_id } });
 
+    broadcastLikeUpdate(post_id, likes_count);
+
     return NextResponse.json({
       ok: true,
       post_id,
@@ -92,14 +95,19 @@ export async function POST(req: Request) {
     data: { userId: auth.userId, content }
   });
 
+  const authorCred = await prisma.userCredential.findUnique({
+    where: { userId: created.userId },
+    select: { username: true }
+  });
+
   const postEvent = {
     id: created.id,
     user_id: created.userId,
     content: created.content,
-    created_at: created.createdAt.toISOString()
+    created_at: created.createdAt.toISOString(),
+    author_username: authorCred?.username ?? null
   };
 
-  // SSE will be implemented in `nextjs-sse`; kept as a stub call for now.
   broadcastNewPost(postEvent);
 
   return NextResponse.json({ ok: true, post: postEvent });

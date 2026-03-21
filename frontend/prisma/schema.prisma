@@ -15,6 +15,8 @@ model User {
   posts       Post[]
   likes       Like[]
   comments    Comment[]
+  follows     Follow[]           @relation("UserFollows")
+  followers   Follow[]           @relation("UserFollowers")
 
   @@map("users")
 }
@@ -69,5 +71,18 @@ model Comment {
 
   @@index([postId])
   @@map("comments")
+}
+
+/** viewer follows target — used for “Following” feed and notifications-style UX later. */
+model Follow {
+  followerId  Int @map("follower_id")
+  followingId Int @map("following_id")
+
+  follower  User @relation("UserFollows", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followingId])
+  @@index([followingId])
+  @@map("follows")
 }
 

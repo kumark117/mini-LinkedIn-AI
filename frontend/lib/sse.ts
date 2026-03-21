@@ -3,6 +3,8 @@ export type SsePostEvent = {
   user_id: number;
   content: string;
   created_at: string;
+  /** Lets the client render @author + Follow without an extra fetch. */
+  author_username?: string | null;
 };
 
 type Subscriber = (post: SsePostEvent) => void;

@@ -1,19 +1,37 @@
 'use client';
 
-import { useState } from 'react';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { formatFeedTimestamp } from '@/lib/formatFeedDate';
 import type { FeedPost } from './FeedList';
 import CommentsPanel from './CommentsPanel';
+import FollowAuthor from './FollowAuthor';
+import { useWsComments } from './WsCommentsProvider';
 
 export default function PostCard({
   post,
-  isAuthenticated
+  isAuthenticated,
+  viewerUserId,
+  isGuestUser
 }: {
   post: FeedPost;
   isAuthenticated: boolean;
+  viewerUserId: number | null;
+  isGuestUser: boolean;
 }) {
+  const { liveLikeCounts } = useWsComments();
   const [likesCount, setLikesCount] = useState<number>(post.likes_count ?? 0);
   const [likedByMe, setLikedByMe] = useState<boolean>(Boolean(post.liked_by_me));
+
+  useEffect(() => {
+    setLikesCount(post.likes_count ?? 0);
+    setLikedByMe(Boolean(post.liked_by_me));
+  }, [post.id, post.likes_count, post.liked_by_me]);
+
+  const live = liveLikeCounts[post.id];
+  useEffect(() => {
+    if (live !== undefined) setLikesCount(live);
+  }, [post.id, live]);
 
   const onToggleLike = async () => {
     if (!isAuthenticated) return;
@@ -42,6 +60,9 @@ export default function PostCard({
     </button>
   );
 
+  const authorName = post.author_username?.trim();
+  const showAuthor = Boolean(authorName);
+
   return (
     <article className="li-post">
       <div className="li-post__body li-post__body--merged">
@@ -49,6 +70,27 @@ export default function PostCard({
           <span className="li-post__time">{formatFeedTimestamp(post.created_at)}</span>
         ) : null}
         {post.created_at ? <span className="li-post__time-sep"> · </span> : null}
+        {showAuthor ? (
+          <>
+            <span className="li-post__author">
+              {!viewerUserId || isGuestUser || viewerUserId === post.user_id ? (
+                <Link href={`/user/${encodeURIComponent(authorName!)}`} className="li-follow-profile-link">
+                  @{authorName}
+                </Link>
+              ) : (
+                <FollowAuthor
+                  targetUserId={post.user_id}
+                  targetUsername={authorName!}
+                  initiallyFollowing={Boolean(post.i_follow_author)}
+                  viewerUserId={viewerUserId}
+                  isGuestUser={isGuestUser}
+                  compact
+                />
+              )}
+            </span>
+            <span className="li-post__time-sep"> · </span>
+          </>
+        ) : null}
         <span className="li-post__text">{post.content}</span>
       </div>
       <div className="li-post__divider" aria-hidden />

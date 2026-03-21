@@ -551,6 +551,58 @@ textarea.app-input {
   color: var(--text-muted);
 }
 
+.li-post__author {
+  display: inline;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.li-follow-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  vertical-align: baseline;
+}
+
+.li-follow-profile-link {
+  color: #14532d;
+  text-decoration: none;
+  font-weight: 800;
+}
+
+.li-follow-profile-link:hover {
+  text-decoration: underline;
+}
+
+.li-follow-btn {
+  margin: 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 2px solid var(--border);
+  background: #f0fdf4;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.li-follow-btn:hover:not(:disabled) {
+  background: #dcfce7;
+}
+
+.li-follow-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.li-follow-btn--compact {
+  padding: 2px 8px;
+  font-size: 11px;
+  border-width: 1px;
+}
+
 .li-post__text {
   font-size: 13px;
   color: var(--text);

@@ -18,6 +18,8 @@ type CommentEvent = {
 
 type WsCommentsContextValue = {
   commentsByPostId: Record<number, WsComment[]>;
+  /** Latest total like counts from WebSocket (any user) — keeps post authors in sync on My posts / feed. */
+  liveLikeCounts: Record<number, number>;
   sendComment: (postId: number, content: string) => void;
   isConnected: boolean;
 };
@@ -46,6 +48,7 @@ export default function WsCommentsProvider({
     return copy;
   });
   const [isConnected, setIsConnected] = useState(false);
+  const [liveLikeCounts, setLiveLikeCounts] = useState<Record<number, number>>({});
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
@@ -60,7 +63,16 @@ export default function WsCommentsProvider({
 
     ws.onmessage = (ev) => {
       try {
-        const msg = JSON.parse(ev.data) as CommentEvent;
+        const msg = JSON.parse(ev.data) as
+          | CommentEvent
+          | { event: 'like'; postId: number; likes_count: number };
+
+        if (msg.event === 'like') {
+          if (typeof msg.postId !== 'number' || typeof msg.likes_count !== 'number') return;
+          setLiveLikeCounts((prev) => ({ ...prev, [msg.postId]: msg.likes_count }));
+          return;
+        }
+
         if (msg.event !== 'comment') return;
 
         setCommentsByPostId((prev) => {
@@ -92,6 +104,7 @@ export default function WsCommentsProvider({
 
   const value: WsCommentsContextValue = {
     commentsByPostId,
+    liveLikeCounts,
     sendComment,
     isConnected
   };

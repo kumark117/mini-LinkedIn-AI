@@ -29,6 +29,8 @@ export default async function MyPostsPage() {
   let mappedPosts: {
     id: number;
     user_id: number;
+    author_username: string | null;
+    i_follow_author: boolean;
     content: string;
     created_at: string;
     likes_count: number;
@@ -46,39 +48,57 @@ export default async function MyPostsPage() {
   let dbError: string | null = null;
   let isGuestUser = false;
 
+  let followedIds: number[] = [];
+
   try {
-    const posts = await prisma.post.findMany({
-      where: { userId: myUserId },
-      take: 30,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        _count: {
-          select: {
-            likes: true,
-            comments: true
-          }
-        },
-        likes: {
-          where: { userId: myUserId },
-          select: { id: true }
-        },
-        comments: {
-          orderBy: { createdAt: 'desc' },
-          take: 8,
-          select: {
-            id: true,
-            postId: true,
-            userId: true,
-            content: true,
-            createdAt: true
+    const [posts, cred, followRows] = await Promise.all([
+      prisma.post.findMany({
+        where: { userId: myUserId },
+        take: 30,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          _count: {
+            select: {
+              likes: true,
+              comments: true
+            }
+          },
+          likes: {
+            where: { userId: myUserId },
+            select: { id: true }
+          },
+          comments: {
+            orderBy: { createdAt: 'desc' },
+            take: 8,
+            select: {
+              id: true,
+              postId: true,
+              userId: true,
+              content: true,
+              createdAt: true
+            }
           }
         }
-      }
-    });
+      }),
+      prisma.userCredential.findUnique({
+        where: { userId: myUserId },
+        select: { username: true }
+      }),
+      prisma.follow.findMany({
+        where: { followerId: myUserId },
+        select: { followingId: true }
+      })
+    ]);
+
+    followedIds = followRows.map((r) => r.followingId);
+    isGuestUser = cred?.username === 'guest';
+    const myUsername = cred?.username ?? null;
 
     mappedPosts = posts.map((p) => ({
       id: p.id,
       user_id: p.userId,
+      author_username: myUsername,
+      i_follow_author: false,
       content: p.content,
       created_at: p.createdAt.toISOString(),
       likes_count: p._count.likes,
@@ -92,16 +112,6 @@ export default async function MyPostsPage() {
         created_at: c.createdAt.toISOString()
       }))
     }));
-
-    try {
-      const cred = await prisma.userCredential.findUnique({
-        where: { userId: myUserId },
-        select: { username: true }
-      });
-      isGuestUser = cred?.username === 'guest';
-    } catch {
-      /* leave isGuestUser false */
-    }
   } catch {
     dbError = 'Could not load posts — check that PostgreSQL is running and DATABASE_URL is correct.';
   }
@@ -113,6 +123,10 @@ export default async function MyPostsPage() {
       <p className="muted" style={{ margin: '0 0 12px', fontSize: 14 }}>
         <Link href="/feed" prefetch={false}>
           My feed
+        </Link>
+        {' · '}
+        <Link href="/feed/following" prefetch={false}>
+          Following
         </Link>
         <span className="muted" style={{ margin: '0 8px', opacity: 0.5 }}>
           ·
@@ -156,7 +170,9 @@ export default async function MyPostsPage() {
               viewerId={myUserId}
               initialPosts={mappedPosts}
               isAuthenticated={isAuthenticated}
-              onlyAuthorUserId={myUserId}
+              sseOnlyUserIds={[myUserId]}
+              followedUserIds={followedIds}
+              isGuestUser={isGuestUser}
             />
           </div>
         </WsCommentsProvider>

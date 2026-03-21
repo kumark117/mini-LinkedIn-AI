@@ -7,6 +7,8 @@ import next from 'next';
 import { WebSocketServer } from 'ws';
 import { prisma } from './lib/db';
 import { getTokenFromCookieHeader, verifyAuthToken } from './lib/auth';
+import { registerLikeBroadcaster } from './lib/wsLikeBroadcast';
+import { startHeartBeatPulse } from './lib/heartBeatPulse';
 
 const port = parseInt(process.env.PORT || '3000', 10);
 const dev = process.env.NODE_ENV !== 'production';
@@ -34,6 +36,15 @@ const server = createServer(async (req, res) => {
 // WebSocket server is attached to the same HTTP server.
 // We only support `/ws/comments` for this project.
 const wss = new WebSocketServer({ noServer: true });
+
+registerLikeBroadcaster((payload) => {
+  const body = JSON.stringify(payload);
+  for (const client of wss.clients) {
+    if (client.readyState === client.OPEN) {
+      client.send(body);
+    }
+  }
+});
 
 server.on('upgrade', (req, socket, head) => {
   const url = req.url ? parse(req.url) : null;
@@ -115,6 +126,7 @@ app
       const openHost = listenHost === '0.0.0.0' ? 'localhost' : listenHost;
       // eslint-disable-next-line no-console
       console.log(`Next server ready on http://${openHost}:${port}`);
+      startHeartBeatPulse();
     });
   })
   .catch((err) => {

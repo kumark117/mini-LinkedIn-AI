@@ -40,6 +40,10 @@ export default async function ProfilePage() {
           My feed
         </Link>
         {' · '}
+        <Link href="/feed/following" prefetch={false}>
+          Following
+        </Link>
+        {' · '}
         <Link href="/myposts" prefetch={false}>
           My posts
         </Link>
