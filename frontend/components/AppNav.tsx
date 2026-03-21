@@ -26,6 +26,7 @@ export default async function AppNav() {
 
   /* Require DB-backed username so stale JWTs after reset don’t look “logged in” until guest re-issues. */
   const loggedIn = Boolean(username);
+  const isGuestUser = username === 'guest';
 
   return (
     <nav className="app-nav" aria-label="Main">
@@ -48,6 +49,14 @@ export default async function AppNav() {
         ) : null}
         {loggedIn ? (
           <>
+            {isGuestUser ? (
+              <span className="app-nav-guest-row">
+                <NavAuthButtons />
+                <span className="app-nav-guest-hint muted" title="Guest is a built-in demo session">
+                  Guest — no sign-out needed. Sign in for your account or register.
+                </span>
+              </span>
+            ) : null}
             <Link href="/feed/following" prefetch={false} title="Posts only from people you follow">
               Following
             </Link>
@@ -60,7 +69,7 @@ export default async function AppNav() {
             <Link href="/profile" prefetch={false}>
               Profile
             </Link>
-            {username ? <SignOutButton /> : null}
+            {username && !isGuestUser ? <SignOutButton /> : null}
           </>
         ) : (
           <NavAuthButtons />

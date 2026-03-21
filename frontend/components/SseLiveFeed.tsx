@@ -23,13 +23,30 @@ function dedupePostsById(posts: FeedPost[]): FeedPost[] {
   return out;
 }
 
+/**
+ * Keep every non-HeartBeat post; among @HeartBeat rows, keep only the newest.
+ * (Older bug: hid all human posts when the filter was on.)
+ */
+function collapseHeartBeatToLatest(posts: FeedPost[]): FeedPost[] {
+  const nonHb: FeedPost[] = [];
+  const hb: FeedPost[] = [];
+  for (const p of posts) {
+    if (p.author_username === 'HeartBeat') hb.push(p);
+    else nonHb.push(p);
+  }
+  if (hb.length === 0) return posts;
+  const latestHb = hb.reduce((a, b) => (a.created_at >= b.created_at ? a : b));
+  return [...nonHb, latestHb].sort((a, b) => b.created_at.localeCompare(a.created_at));
+}
+
 export default function SseLiveFeed({
   viewerId,
   initialPosts,
   isAuthenticated,
   sseOnlyUserIds,
   followedUserIds,
-  isGuestUser
+  isGuestUser,
+  enableHeartBeatFilter = false
 }: {
   /** When this changes (switch accounts), reset list even if post IDs are unchanged — liked_by_me differs per user. */
   viewerId: number | null;
@@ -45,8 +62,11 @@ export default function SseLiveFeed({
   /** Used to set `i_follow_author` on live posts (Follow button state). */
   followedUserIds?: number[] | null;
   isGuestUser: boolean;
+  /** Discover / Following: optional collapse of HeartBeat spam to a single latest line (default on). */
+  enableHeartBeatFilter?: boolean;
 }) {
   const [posts, setPosts] = useState<FeedPost[]>(initialPosts);
+  const [heartBeatOnly, setHeartBeatOnly] = useState(true);
   const seenIds = useRef<Set<number>>(new Set(initialPosts.map((p) => p.id)));
   const followedRef = useRef(followedUserIds);
   followedRef.current = followedUserIds;
@@ -105,12 +125,29 @@ export default function SseLiveFeed({
     };
   }, [eventSourceUrl, viewerId]);
 
+  const displayPosts = useMemo(() => {
+    if (!enableHeartBeatFilter || !heartBeatOnly) return posts;
+    return collapseHeartBeatToLatest(posts);
+  }, [posts, enableHeartBeatFilter, heartBeatOnly]);
+
   return (
-    <FeedList
-      posts={posts}
-      isAuthenticated={isAuthenticated}
-      viewerUserId={viewerId}
-      isGuestUser={isGuestUser}
-    />
+    <>
+      {enableHeartBeatFilter ? (
+        <label className="heartbeat-feed-toggle">
+          <input
+            type="checkbox"
+            checked={heartBeatOnly}
+            onChange={(e) => setHeartBeatOnly(e.target.checked)}
+          />
+          Collapse HeartBeat · latest only
+        </label>
+      ) : null}
+      <FeedList
+        posts={displayPosts}
+        isAuthenticated={isAuthenticated}
+        viewerUserId={viewerId}
+        isGuestUser={isGuestUser}
+      />
+    </>
   );
 }

@@ -98,6 +98,7 @@ export default async function FeedPage() {
               isAuthenticated={isAuthenticated}
               followedUserIds={followedIds}
               isGuestUser={isGuestUser}
+              enableHeartBeatFilter
             />
           </div>
         </WsCommentsProvider>

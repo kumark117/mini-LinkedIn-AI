@@ -106,6 +106,7 @@ export default async function FollowingFeedPage() {
               sseOnlyUserIds={followedIds}
               followedUserIds={followedIds}
               isGuestUser={isGuestUser}
+              enableHeartBeatFilter
             />
           </div>
         </WsCommentsProvider>

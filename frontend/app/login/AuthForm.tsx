@@ -1,17 +1,21 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { DEMO_AUTH_BLURB } from '@/lib/demoAccounts';
 import { PASSWORD_MAX, USERNAME_MAX, USERNAME_MIN } from '@/lib/authLimits';
 
 type Mode = 'login' | 'register';
 
-type Feedback = { message: string; variant: 'info' | 'error' };
+type Feedback = { message: string; variant: 'info' | 'error' | 'success' };
+
+/** Same label for register tab and primary submit when creating an account. */
+const REGISTER_CTA = 'Create account';
+
+const REDIRECT_AFTER_MS = 1200;
 
 /**
- * Tabs use full `location.assign` (same class of navigation as post-login) so mode matches the URL
- * and nothing intercepts clicks oddly. Submit buttons still use fetch + assign on success.
+ * Radios switch URL/mode (`/login` vs `?register=1`); primary submit is the solid green action.
  */
 export default function AuthForm({ mode }: { mode: Mode }) {
   const router = useRouter();
@@ -21,67 +25,75 @@ export default function AuthForm({ mode }: { mode: Mode }) {
   const [headline, setHeadline] = useState('');
   const [signInAfterRegister, setSignInAfterRegister] = useState(true);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  const onLogin = () => {
-    (async () => {
-      const u = username.trim();
-      const p = password;
-      if (u.length < USERNAME_MIN || u.length > USERNAME_MAX) {
-        setFeedback({
-          message: `Username must be ${USERNAME_MIN}–${USERNAME_MAX} characters.`,
-          variant: 'error'
-        });
-        return;
-      }
-      if (p.length > PASSWORD_MAX) {
-        setFeedback({
-          message: `Password must be at most ${PASSWORD_MAX} characters (empty for demo1–demo9).`,
-          variant: 'error'
-        });
-        return;
-      }
-      setFeedback({ message: 'Signing in…', variant: 'info' });
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify({ username: u, password: p })
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setFeedback({
-          message: typeof data?.error === 'string' ? data.error : 'Login failed',
-          variant: 'error'
-        });
-        return;
-      }
-      window.location.assign('/myposts');
-    })();
+  const userHint = `Username: ${USERNAME_MIN}–${USERNAME_MAX} characters.`;
+  const passHintRegister = `Optional. 0–${PASSWORD_MAX} characters (empty = no password).`;
+  const passHintLogin = `0–${PASSWORD_MAX} characters; empty for demo1–demo9 or no-password accounts.`;
+
+  const fetchOpts = {
+    credentials: 'same-origin' as const,
+    cache: 'no-store' as RequestCache
   };
 
-  const onRegister = () => {
-    (async () => {
-      const u = username.trim();
-      const p = password;
-      if (u.length < USERNAME_MIN || u.length > USERNAME_MAX) {
-        setFeedback({
-          message: `Username must be ${USERNAME_MIN}–${USERNAME_MAX} characters.`,
-          variant: 'error'
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    const u = username.trim();
+    const p = password;
+
+    if (u.length < USERNAME_MIN || u.length > USERNAME_MAX) {
+      setFeedback({
+        message: `Username must be ${USERNAME_MIN}–${USERNAME_MAX} characters.`,
+        variant: 'error'
+      });
+      return;
+    }
+    if (p.length > PASSWORD_MAX) {
+      setFeedback({
+        message: `Password must be at most ${PASSWORD_MAX} characters.`,
+        variant: 'error'
+      });
+      return;
+    }
+
+    setSubmitting(true);
+
+    if (mode === 'login') {
+      setFeedback({ message: 'Signing in…', variant: 'info' });
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          ...fetchOpts,
+          body: JSON.stringify({ username: u, password: p })
         });
-        return;
-      }
-      if (p.length > PASSWORD_MAX) {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setFeedback({
+            message: typeof data?.error === 'string' ? data.error : 'Login failed',
+            variant: 'error'
+          });
+          return;
+        }
+        const who = typeof data?.user?.username === 'string' ? data.user.username : u;
         setFeedback({
-          message: `Password must be at most ${PASSWORD_MAX} characters.`,
-          variant: 'error'
+          message: `Signed in as @${who}. Opening My posts…`,
+          variant: 'success'
         });
-        return;
+        await new Promise((r) => setTimeout(r, REDIRECT_AFTER_MS));
+        window.location.assign('/myposts');
+      } finally {
+        setSubmitting(false);
       }
-      setFeedback({ message: 'Creating account…', variant: 'info' });
+      return;
+    }
+
+    setFeedback({ message: 'Creating account…', variant: 'info' });
+    try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
+        ...fetchOpts,
         body: JSON.stringify({
           name: name.trim(),
           headline: headline.trim(),
@@ -98,22 +110,45 @@ export default function AuthForm({ mode }: { mode: Mode }) {
         });
         return;
       }
+
+      const who = typeof data?.user?.username === 'string' ? data.user.username : u;
+
       if (data.signedIn === false) {
         setFeedback({
-          message: 'Account created. Sign in with your username and password.',
-          variant: 'info'
+          message: `Account @${who} created. Sign in with your username and password when you’re ready.`,
+          variant: 'success'
         });
         router.replace('/login', { scroll: false });
         setPassword('');
         return;
       }
+
+      setFeedback({
+        message: `Welcome, @${who}! You’re signed in. Opening My posts…`,
+        variant: 'success'
+      });
+      await new Promise((r) => setTimeout(r, REDIRECT_AFTER_MS));
       window.location.assign('/myposts');
-    })();
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const userHint = `Username: ${USERNAME_MIN}–${USERNAME_MAX} characters.`;
-  const passHintRegister = `Optional. 0–${PASSWORD_MAX} characters (empty = no password).`;
-  const passHintLogin = `0–${PASSWORD_MAX} characters; empty for demo1–demo9 or no-password accounts.`;
+  const feedbackColor =
+    feedback?.variant === 'error'
+      ? '#b91c1c'
+      : feedback?.variant === 'success'
+        ? '#166534'
+        : '#0f172a';
+
+  const submitLabel =
+    mode === 'login'
+      ? submitting
+        ? 'Signing in…'
+        : 'Sign in'
+      : submitting
+        ? 'Creating account…'
+        : REGISTER_CTA;
 
   return (
     <main className="app-main">
@@ -122,34 +157,39 @@ export default function AuthForm({ mode }: { mode: Mode }) {
         <strong>Demo accounts:</strong> {DEMO_AUTH_BLURB}
       </div>
 
-      <div className="auth-mode-row" role="tablist" aria-label="Sign in or register">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mode === 'login'}
-          className={`auth-mode-btn${mode === 'login' ? ' auth-mode-btn-active' : ''}`}
-          onClick={() => {
-            setFeedback(null);
-            if (mode !== 'login') window.location.assign('/login');
-          }}
-        >
-          Sign in
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mode === 'register'}
-          className={`auth-mode-btn${mode === 'register' ? ' auth-mode-btn-active' : ''}`}
-          onClick={() => {
-            setFeedback(null);
-            if (mode !== 'register') window.location.assign('/login?register=1');
-          }}
-        >
-          Create account
-        </button>
-      </div>
+      <fieldset className="auth-mode-fieldset">
+        <legend className="auth-mode-legend">Account type</legend>
+        <div className="auth-mode-radios">
+          <label className="auth-radio-pill">
+            <input
+              type="radio"
+              name="accountType"
+              value="existing"
+              checked={mode === 'login'}
+              onChange={() => {
+                setFeedback(null);
+                if (mode !== 'login') window.location.assign('/login');
+              }}
+            />
+            <span>Existing account</span>
+          </label>
+          <label className="auth-radio-pill">
+            <input
+              type="radio"
+              name="accountType"
+              value="create"
+              checked={mode === 'register'}
+              onChange={() => {
+                setFeedback(null);
+                if (mode !== 'register') window.location.assign('/login?register=1');
+              }}
+            />
+            <span>Create account</span>
+          </label>
+        </div>
+      </fieldset>
 
-      <div className="app-card auth-form-card" style={{ marginTop: 16 }}>
+      <form className="app-card auth-form-card" style={{ marginTop: 16 }} onSubmit={handleSubmit}>
         {mode === 'register' ? (
           <>
             <label className="muted" style={{ display: 'block', fontSize: 13 }}>
@@ -224,32 +264,28 @@ export default function AuthForm({ mode }: { mode: Mode }) {
           </label>
         ) : null}
 
-        {mode === 'login' ? (
-          <button type="button" className="app-button" onClick={onLogin}>
-            Sign in
-          </button>
-        ) : (
-          <button type="button" className="app-button" onClick={onRegister}>
-            Create account
-          </button>
-        )}
+        <button type="submit" className="auth-form-submit" disabled={submitting}>
+          {submitLabel}
+        </button>
 
         {feedback ? (
           <div
+            className={`auth-feedback auth-feedback--${feedback.variant}`}
             style={{
-              marginTop: 12,
+              marginTop: 14,
               fontSize: 14,
               fontWeight: 700,
-              color: feedback.variant === 'error' ? '#b91c1c' : '#0f172a',
+              color: feedbackColor,
               wordBreak: 'break-word',
               maxWidth: '100%'
             }}
             role="status"
+            aria-live="polite"
           >
             {feedback.message}
           </div>
         ) : null}
-      </div>
+      </form>
     </main>
   );
 }

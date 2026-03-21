@@ -67,7 +67,9 @@ export default function PostCard({
     <article className="li-post">
       <div className="li-post__body li-post__body--merged">
         {post.created_at ? (
-          <span className="li-post__time">{formatFeedTimestamp(post.created_at)}</span>
+          <span className="li-post__time" suppressHydrationWarning title="Your local time">
+            {formatFeedTimestamp(post.created_at)}
+          </span>
         ) : null}
         {post.created_at ? <span className="li-post__time-sep"> · </span> : null}
         {showAuthor ? (

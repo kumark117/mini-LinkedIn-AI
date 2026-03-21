@@ -213,15 +213,34 @@ textarea.app-input {
   font-weight: 700;
 }
 
-.auth-mode-row {
-  display: flex;
-  gap: 10px;
-  margin-top: 16px;
+.auth-mode-fieldset {
+  border: none;
+  margin: 16px 0 0;
+  padding: 0;
   max-width: 640px;
 }
 
-.auth-mode-btn {
+.auth-mode-legend {
+  padding: 0;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.auth-mode-radios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.auth-radio-pill {
   flex: 1;
+  min-width: 140px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
   padding: 12px 14px;
   border-radius: 10px;
   border: 2px solid var(--border);
@@ -230,28 +249,30 @@ textarea.app-input {
   font: inherit;
   font-weight: 700;
   cursor: pointer;
-  text-decoration: none;
-  text-align: center;
   box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  appearance: none;
-  margin: 0;
 }
 
-.auth-mode-btn:hover {
+.auth-radio-pill:hover {
   background: #f0fdf4;
 }
 
-.auth-mode-btn-active {
+.auth-radio-pill input[type='radio'] {
+  width: 1.1rem;
+  height: 1.1rem;
+  margin: 0;
+  flex-shrink: 0;
+  accent-color: #166534;
+  cursor: pointer;
+}
+
+.auth-radio-pill:has(input:checked) {
   background: #166534;
   color: #ffffff;
   border-color: #14532d;
   box-shadow: 0 0 0 2px #bbf7d0;
 }
 
-.auth-mode-btn-active:hover {
+.auth-radio-pill:has(input:checked):hover {
   background: #15803d;
   color: #ffffff;
 }

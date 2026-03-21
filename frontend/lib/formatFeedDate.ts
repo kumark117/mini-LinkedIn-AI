@@ -1,14 +1,17 @@
-/** Stable on server + client (avoids hydration mismatch from toLocaleString). */
+/**
+ * Format an ISO instant in the **runtime’s local timezone** (browser on the client,
+ * Node/server default TZ during SSR). Use `suppressHydrationWarning` on the wrapping
+ * element when this runs in a client component so server vs client TZ mismatches don’t warn.
+ */
 export function formatFeedTimestamp(iso: string): string {
   try {
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return iso;
-    const y = d.getUTCFullYear();
-    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(d.getUTCDate()).padStart(2, '0');
-    const h = String(d.getUTCHours()).padStart(2, '0');
-    const min = String(d.getUTCMinutes()).padStart(2, '0');
-    return `${y}-${m}-${day} ${h}:${min} UTC`;
+    return new Intl.DateTimeFormat(undefined, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+      timeZoneName: 'short'
+    }).format(d);
   } catch {
     return iso;
   }

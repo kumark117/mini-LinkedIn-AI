@@ -64,7 +64,9 @@ export default function CommentsPanel({
         <div className="li-comment-list">
           {comments.slice(0, 8).map((c) => (
             <div key={c.id} className="li-comment-row">
-              <span className="li-comment-row__time">{formatFeedTimestamp(c.created_at)}</span>
+              <span className="li-comment-row__time" suppressHydrationWarning title="Your local time">
+                {formatFeedTimestamp(c.created_at)}
+              </span>
               <span className="li-comment-row__text">{c.content}</span>
             </div>
           ))}

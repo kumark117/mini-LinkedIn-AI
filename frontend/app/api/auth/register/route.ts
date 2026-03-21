@@ -23,7 +23,14 @@ const RegisterBodySchema = z.object({
     .transform((v) => (typeof v === 'string' ? v : ''))
     .pipe(z.string().max(PASSWORD_MAX)),
   /** Default true: set session cookie so the user lands logged in as this account. */
-  signInAfterRegister: z.boolean().optional()
+  signInAfterRegister: z
+    .union([z.boolean(), z.literal('true'), z.literal('false')])
+    .optional()
+    .transform((v) => {
+      if (v === undefined) return undefined;
+      if (typeof v === 'boolean') return v;
+      return v === 'true';
+    })
 });
 
 export async function POST(req: Request) {
@@ -34,6 +41,7 @@ export async function POST(req: Request) {
   }
 
   const { name: nameRaw, headline, username, password, signInAfterRegister } = parsed.data;
+  /** Explicit false only skips cookie; undefined defaults to sign-in (matches checkbox default on). */
   const signIn = signInAfterRegister !== false;
   const name = nameRaw ? nameRaw : username;
 
@@ -74,15 +82,18 @@ export async function POST(req: Request) {
       return user;
     });
 
-    const res = NextResponse.json({
-      signedIn: signIn,
-      user: {
-        id: createdUser.id,
-        name: createdUser.name,
-        headline: createdUser.headline,
-        username
-      }
-    });
+    const res = NextResponse.json(
+      {
+        signedIn: signIn,
+        user: {
+          id: createdUser.id,
+          name: createdUser.name,
+          headline: createdUser.headline,
+          username
+        }
+      },
+      { headers: { 'Cache-Control': 'no-store' } }
+    );
 
     if (signIn) {
       const token = signAuthToken(createdUser.id);
@@ -90,7 +101,8 @@ export async function POST(req: Request) {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: process.env.NODE_ENV === 'production'
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 60 * 60 * 24 * 7
       });
     }
 
