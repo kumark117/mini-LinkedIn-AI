@@ -36,12 +36,12 @@ export default async function ProfilePage() {
           ← Home
         </Link>
         {' · '}
-        <Link href="/feed" prefetch={false}>
-          My feed
-        </Link>
-        {' · '}
         <Link href="/feed/following" prefetch={false}>
           Following
+        </Link>
+        {' · '}
+        <Link href="/feed" prefetch={false}>
+          Discover
         </Link>
         {' · '}
         <Link href="/myposts" prefetch={false}>

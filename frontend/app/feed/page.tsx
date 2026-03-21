@@ -13,7 +13,7 @@ import { prisma } from '@/lib/db';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-/** Everyone’s posts — like, comment, follow authors, and use Following for a filtered view. */
+/** Discover = full network (not the same as Following). */
 export default async function FeedPage() {
   noStore();
   const cookieStore = cookies();
@@ -52,19 +52,20 @@ export default async function FeedPage() {
   return (
     <main className="app-main app-main-feed">
       <p className="muted" style={{ margin: '0 0 12px', fontSize: 14 }}>
-        <Link href="/myposts" prefetch={false}>
-          ← My posts
+        <Link href="/feed/following" prefetch={false}>
+          ← Following
         </Link>
         {' · '}
-        <Link href="/feed/following" prefetch={false}>
-          Following
+        <Link href="/myposts" prefetch={false}>
+          My posts
         </Link>
       </p>
-      <h1>My feed</h1>
-      <p className="muted" style={{ margin: '0 0 16px', fontSize: 14 }}>
-        Posts from everyone — use <strong>Follow</strong> next to an @name, then open{' '}
-        <Link href="/feed/following">Following</Link> for only people you subscribe to.
-      </p>
+      <h1>Discover</h1>
+      <div className="feed-mode-explainer" role="note">
+        <strong>Everyone’s posts</strong> — not filtered by who you follow. You’ll see new authors here first;
+        that’s normal. Use <strong>Follow</strong> next to an @name when you want them in your{' '}
+        <Link href="/feed/following">Following</Link> stream only.
+      </div>
       {showFeedAuthCta ? <FeedAuthBar /> : null}
       {dbError ? (
         <div

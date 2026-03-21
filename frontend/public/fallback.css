@@ -236,6 +236,8 @@ textarea.app-input {
   display: flex;
   align-items: center;
   justify-content: center;
+  appearance: none;
+  margin: 0;
 }
 
 .auth-mode-btn:hover {

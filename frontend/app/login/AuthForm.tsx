@@ -10,8 +10,8 @@ type Mode = 'login' | 'register';
 type Feedback = { message: string; variant: 'info' | 'error' };
 
 /**
- * Tab targets use real URLs (`<a>`) so mode always matches the address bar — works with custom
- * `server.ts` and `router.refresh()` from guest bootstrap; no reliance on client `replace()`.
+ * Tabs use full `location.assign` (same class of navigation as post-login) so mode matches the URL
+ * and nothing intercepts clicks oddly. Submit buttons still use fetch + assign on success.
  */
 export default function AuthForm({ mode }: { mode: Mode }) {
   const router = useRouter();
@@ -123,24 +123,30 @@ export default function AuthForm({ mode }: { mode: Mode }) {
       </div>
 
       <div className="auth-mode-row" role="tablist" aria-label="Sign in or register">
-        <a
-          href="/login"
+        <button
+          type="button"
           role="tab"
           aria-selected={mode === 'login'}
           className={`auth-mode-btn${mode === 'login' ? ' auth-mode-btn-active' : ''}`}
-          onClick={() => setFeedback(null)}
+          onClick={() => {
+            setFeedback(null);
+            if (mode !== 'login') window.location.assign('/login');
+          }}
         >
           Sign in
-        </a>
-        <a
-          href="/login?register=1"
+        </button>
+        <button
+          type="button"
           role="tab"
           aria-selected={mode === 'register'}
           className={`auth-mode-btn${mode === 'register' ? ' auth-mode-btn-active' : ''}`}
-          onClick={() => setFeedback(null)}
+          onClick={() => {
+            setFeedback(null);
+            if (mode !== 'register') window.location.assign('/login?register=1');
+          }}
         >
           Create account
-        </a>
+        </button>
       </div>
 
       <div className="app-card auth-form-card" style={{ marginTop: 16 }}>

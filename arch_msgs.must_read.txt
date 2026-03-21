@@ -1,0 +1,154 @@
+================================================================================
+Mini-LinkedIn AI — ARCHITECTURE (must read)
+Saved for later reference: posts, comments, feeds, realtime, and how to run.
+================================================================================
+
+## Data layer (PostgreSQL + Prisma)
+
+- Post — user_id, content, created_at; has many Likes and Comments.
+- Like — unique per (user_id, post_id).
+- Comment — post_id, user_id, content, created_at.
+- User / UserCredential — auth; JWT cookie maps to user_id.
+
+All durable state lives in PostgreSQL; Prisma is the main DB access path in the Next app.
+
+
+## Two “surfaces” for reading posts
+
+Route              What it is
+-----------------  ----------------------------------------------------------
+/feed (“Discover”) Last N posts from EVERYONE — discovery, not subscriptions.
+/feed/following    Only posts from users you follow (subscribe list).
+/myposts           Your posts only; live SSE scoped to your user id.
+
+Both pages are React Server Components: each request runs findMany with:
+- like/comment counts
+- liked_by_me for the viewer
+- a slice of initial comments (e.g. newest 8) to hydrate the UI
+
+
+## New posts (HTTP + SSE)
+
+1. CreatePost → POST /api/posts with { content } (must be signed in).
+2. Route handler: prisma.post.create, then broadcastNewPost(...) in lib/sse.ts.
+3. lib/sse keeps subscriber callbacks on globalThis so all Next bundles share
+   one fan-out (avoids “POST succeeded but nobody hears it”).
+4. GET /api/stream (Server-Sent Events) registers a subscriber and writes
+   “event: post” payloads to the browser.
+5. SseLiveFeed uses EventSource('/api/stream') and prepends new posts.
+   It dedupes by post.id and re-syncs from the server when the id-list
+   signature changes (works with router.refresh() without duplicate cards).
+
+Writes = REST. Live “someone posted” = SSE.
+
+
+## Comments (WebSocket)
+
+1. WsCommentsProvider opens ws://<host>/ws/comments (wss if the page is HTTPS).
+2. server.ts (custom Node HTTP server) handles HTTP upgrade for /ws/comments
+   and attaches a ws WebSocketServer alongside Next.
+3. Browser sends JSON: { type: 'comment', postId, content }.
+4. Server reads JWT from the Cookie header, prisma.comment.create, then
+   broadcasts { event: 'comment', postId, comment } to EVERY connected client.
+
+Comments = WebSocket; DB write happens on the server; UI merges into
+commentsByPostId (deduped by comment id).
+
+IMPORTANT: This only works when you run the CUSTOM server (npm run dev in
+frontend → tsx server.ts). Plain “next dev” without that server does NOT
+expose /ws/comments — the UI may sit on “Connecting…” for comments.
+
+
+## Likes (HTTP + same WebSocket)
+
+1. PostCard → POST /api/posts with { action: 'like', post_id }.
+2. Handler toggles Like in Prisma, returns likes_count and liked_by_me to the
+   tab that clicked.
+3. It also calls broadcastLikeUpdate(post_id, likes_count) from
+   lib/wsLikeBroadcast.ts, registered from server.ts, which sends
+   { event: 'like', postId, likes_count } to all WebSocket clients.
+4. WsCommentsProvider updates liveLikeCounts; PostCard merges that so other
+   tabs and the POST AUTHOR see the new total without only relying on their
+   own fetch response.
+
+
+## Auth & “who sees what”
+
+- Cookie → verifyAuthToken → user_id for likes, comments, and “my” queries.
+- Guest is a real users row; auto-session via POST /api/auth/guest (and
+  EnsureGuestSession on /myposts when there is no cookie yet on first load).
+
+
+## How to run the app (one command)
+
+From repo root:
+
+  cd frontend
+  npm run dev
+
+That runs migrations if needed and starts the custom server (Next + WebSockets).
+Open http://localhost:3000 — PostgreSQL must be running and DATABASE_URL set
+in frontend/.env.
+
+
+## WebSockets — quick reminder
+
+- URL: /ws/comments on the same port as the site.
+- Used for: live comments + live like-count fan-out.
+- SSE (/api/stream) is separate — used for new POST rows in the feed, not
+  for comment bodies.
+
+
+## Flow diagram (ASCII)
+
+  [Browser: /feed, /myposts RSC] ----Prisma----> [PostgreSQL]
+  [CreatePost / PostCard] ----HTTP POST----> [/api/posts] ----> [PostgreSQL]
+                              |
+                              +--> broadcastNewPost --> [lib/sse] --> [/api/stream] <--EventSource-- [SseLiveFeed]
+
+  [WsCommentsProvider] <--WebSocket /ws/comments--> [server.ts ws server]
+                              |
+  POST like ----------------> [/api/posts] --> broadcastLikeUpdate --> same WS
+
+  server.ts = one HTTP server for Next + upgrade handler for /ws/comments.
+
+
+## Files worth opening when you extend this
+
+- frontend/server.ts              — HTTP + WebSocket upgrade
+- frontend/lib/sse.ts             — in-memory post broadcast to SSE routes
+- frontend/lib/wsLikeBroadcast.ts — bridge from API routes to WS clients
+- frontend/app/api/stream/route.ts
+- frontend/app/api/posts/route.ts
+- frontend/components/SseLiveFeed.tsx
+- frontend/components/WsCommentsProvider.tsx
+- frontend/components/PostCard.tsx
+- frontend/prisma/schema.prisma
+
+## Follows / “Following” feed
+
+- Table **follows** (`follower_id` → `following_id`), composite PK, cascade on user delete.
+- **POST /api/follow** body `{ username, follow: boolean }` — follow/unfollow by @username (not self).
+- **GET /api/follow** — JSON list of `{ id, username }` you follow.
+- **/feed** (“**Discover**”) — whole network; each post shows **@author** + **Follow** (signed-in, non-guest).
+- **/feed/following** — subscriptions only; SSE filtered to the same author set.
+- **/user/[username]** — public profile + posts + Follow; live posts filtered to that author only.
+- **lib/feedQuery.ts** — `loadFeedPosts({ mode: 'all' | 'following' })` and `loadAuthorProfilePosts`.
+- Username **heartbeat** remains reserved for the bot; **HeartBeat** can still be followed like anyone else.
+
+
+## HeartBeat (automated time pulse)
+
+- User row: username **HeartBeat**, **empty password** (NULL hash) — same as demo accounts.
+- **lib/heartBeatPulse.ts** runs from **server.ts** after listen: aligns to the next wall-clock
+  minute, then every 60s creates a **Post** whose content starts with **ASCII ETX (code 3)**:
+  "\u0003 HeartBeat · server time <ISO8601>"
+- Calls **broadcastNewPost** so **EventSource /api/stream** delivers it like any other new post.
+- **HEARTBEAT_PULSE=false** in .env disables the timer.
+- Migration **20260322140000_heartbeat_pulse_user** seeds the account; **heartbeat** is reserved
+  in register (lib/demoAccounts.ts).
+
+
+================================================================================
+End of arch_msgs.must_read.txt
+================================================================================

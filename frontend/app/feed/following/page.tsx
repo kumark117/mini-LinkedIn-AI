@@ -53,7 +53,7 @@ export default async function FollowingFeedPage() {
     <main className="app-main app-main-feed">
       <p className="muted" style={{ margin: '0 0 12px', fontSize: 14 }}>
         <Link href="/feed" prefetch={false}>
-          ← Everyone
+          ← Discover
         </Link>
         {' · '}
         <Link href="/myposts" prefetch={false}>
@@ -61,17 +61,17 @@ export default async function FollowingFeedPage() {
         </Link>
       </p>
       <h1>Following</h1>
-      <p className="muted" style={{ margin: '0 0 16px', fontSize: 14 }}>
-        Only posts from people you follow — e.g. subscribe to <strong>tester1</strong> on the main feed, then
-        their new posts show here live.
-      </p>
+      <div className="feed-mode-explainer feed-mode-explainer--primary" role="note">
+        <strong>Your subscriptions</strong> — only people you’ve followed. New posts from them land here (and
+        in <Link href="/feed">Discover</Link> too, because Discover shows the whole network).
+      </div>
       {showFeedAuthCta ? <FeedAuthBar /> : null}
       {emptyFollowing ? (
         <div className="app-card" style={{ marginTop: 8 }}>
           <p style={{ margin: 0, fontWeight: 700 }}>You’re not following anyone yet</p>
           <p className="muted" style={{ marginTop: 10, marginBottom: 0 }}>
-            Open <Link href="/feed">My feed</Link>, find a post, and click <strong>Follow</strong> next to their
-            @username (or open their public page via the @ link on any post).
+            Open <Link href="/feed">Discover</Link>, find someone, and click <strong>Follow</strong> next to their
+            @username (or open their page via the @ link on a post).
           </p>
         </div>
       ) : null}

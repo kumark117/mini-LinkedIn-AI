@@ -121,12 +121,12 @@ export default async function MyPostsPage() {
   return (
     <main className="app-main app-main-feed">
       <p className="muted" style={{ margin: '0 0 12px', fontSize: 14 }}>
-        <Link href="/feed" prefetch={false}>
-          My feed
-        </Link>
-        {' · '}
         <Link href="/feed/following" prefetch={false}>
           Following
+        </Link>
+        {' · '}
+        <Link href="/feed" prefetch={false}>
+          Discover
         </Link>
         <span className="muted" style={{ margin: '0 8px', opacity: 0.5 }}>
           ·
@@ -137,8 +137,8 @@ export default async function MyPostsPage() {
       </p>
       <h1>My posts</h1>
       <p className="muted" style={{ margin: '0 0 16px', fontSize: 14 }}>
-        Only posts you authored — open <Link href="/feed">My feed</Link> to like and comment on
-        others&apos; posts.
+        Only posts you authored — open <Link href="/feed">Discover</Link> to browse everyone, or{' '}
+        <Link href="/feed/following">Following</Link> for people you subscribe to.
       </p>
       {showFeedAuthCta ? <FeedAuthBar /> : null}
       {dbError ? (

@@ -38,8 +38,10 @@ export default function SignOutButton() {
               alert('Could not restore guest session — refresh the page.');
               return;
             }
-            // Full load: picks up new cookies and avoids stale layout / @username pill.
-            window.location.assign('/myposts');
+            // Hard navigation + cache-bust so AppNav re-renders guest (Sign in / Register, no Sign out).
+            const next = new URL('/myposts', window.location.origin);
+            next.searchParams.set('_nav', String(Date.now()));
+            window.location.replace(next.toString());
           } finally {
             setBusy(false);
           }

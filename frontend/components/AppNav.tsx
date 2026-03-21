@@ -57,11 +57,11 @@ export default async function AppNav() {
                 </Link>
               </>
             ) : null}
-            <Link href="/feed" prefetch={false}>
-              My feed
-            </Link>
-            <Link href="/feed/following" prefetch={false}>
+            <Link href="/feed/following" prefetch={false} title="Posts only from people you follow">
               Following
+            </Link>
+            <Link href="/feed" prefetch={false} title="All members’ posts — find people to follow">
+              Discover
             </Link>
             <Link href="/myposts" prefetch={false}>
               My posts

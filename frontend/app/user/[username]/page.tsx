@@ -69,12 +69,12 @@ export default async function PublicUserPage({ params }: { params: { username: s
   return (
     <main className="app-main app-main-feed">
       <p className="muted" style={{ margin: '0 0 12px', fontSize: 14 }}>
-        <Link href="/feed" prefetch={false}>
-          ← My feed
+        <Link href="/feed/following" prefetch={false}>
+          ← Following
         </Link>
         {' · '}
-        <Link href="/feed/following" prefetch={false}>
-          Following
+        <Link href="/feed" prefetch={false}>
+          Discover
         </Link>
       </p>
 
