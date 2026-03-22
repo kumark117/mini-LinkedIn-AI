@@ -126,15 +126,14 @@ export default function SseLiveFeed({
 
   const fastApiOrigin = useMemo(() => process.env.NEXT_PUBLIC_FASTAPI_SSE_ORIGIN?.trim() ?? '', []);
 
-  const eventSourceUrl = useMemo(() => {
-    if (fastApiOrigin) {
-      return `${fastApiOrigin.replace(/\/$/, '')}/api/stream/posts`;
-    }
-    return '/api/stream';
-  }, [fastApiOrigin]);
-
   const hasFastApiSse = Boolean(fastApiOrigin);
   const newsStripActive = showLiveNewsStrip && hasFastApiSse;
+
+  /** FastAPI SSE URL — only used for the news strip (`event: news`), not for posts. */
+  const fastApiStreamUrl = useMemo(
+    () => (fastApiOrigin ? `${fastApiOrigin.replace(/\/$/, '')}/api/stream/posts` : ''),
+    [fastApiOrigin]
+  );
 
   /** HTTP snapshot — works even when SSE named events fail cross-origin; SSE still pushes updates. */
   useEffect(() => {
@@ -181,8 +180,12 @@ export default function SseLiveFeed({
     return () => window.clearTimeout(id);
   }, [newsJustUpdated]);
 
+  /**
+   * Posts: always use same-origin `/api/stream` so `broadcastNewPost` in the Next process delivers
+   * immediately (no hop to FastAPI). News: optional second connection to FastAPI for `event: news` only.
+   */
   useEffect(() => {
-    const es = new EventSource(eventSourceUrl);
+    const esPosts = new EventSource('/api/stream');
 
     const onPost = (ev: MessageEvent) => {
       try {
@@ -214,6 +217,9 @@ export default function SseLiveFeed({
       }
     };
 
+    esPosts.addEventListener('post', onPost);
+
+    let esNews: EventSource | null = null;
     const onNews = (ev: MessageEvent) => {
       try {
         setLiveNews(JSON.parse(ev.data) as SseNewsEvent);
@@ -225,16 +231,20 @@ export default function SseLiveFeed({
       }
     };
 
-    es.addEventListener('post', onPost);
-    if (newsStripActive) {
-      es.addEventListener('news', onNews);
+    if (newsStripActive && fastApiStreamUrl) {
+      esNews = new EventSource(fastApiStreamUrl);
+      esNews.addEventListener('news', onNews);
     }
+
     return () => {
-      es.removeEventListener('post', onPost);
-      es.removeEventListener('news', onNews);
-      es.close();
+      esPosts.removeEventListener('post', onPost);
+      esPosts.close();
+      if (esNews) {
+        esNews.removeEventListener('news', onNews);
+        esNews.close();
+      }
     };
-  }, [eventSourceUrl, viewerId, newsStripActive]);
+  }, [viewerId, newsStripActive, fastApiStreamUrl]);
 
   const displayPosts = useMemo(() => {
     if (!enableHeartBeatFilter || !heartBeatOnly) return posts;

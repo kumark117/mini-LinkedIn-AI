@@ -3,6 +3,7 @@ import AppNav from '@/components/AppNav';
 import FallbackStylesheet from '@/components/FallbackStylesheet';
 import GuestBootstrap from '@/components/GuestBootstrap';
 import FeedCrossTabSync from '@/components/FeedCrossTabSync';
+import SessionSyncNotice from '@/components/SessionSyncNotice';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -24,6 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <GuestBootstrap />
         <FeedCrossTabSync />
         <AppNav />
+        <SessionSyncNotice />
         {children}
       </body>
     </html>
