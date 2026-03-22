@@ -11,7 +11,8 @@ databases:
 
 services:
   - type: web
-    name: mini-linkedin-api
+    # Must match the Render service name / fromService refs below (your live API host).
+    name: pythonapiserver-mini-linkedin-ai
     runtime: python
     rootDir: backend
     buildCommand: pip install -r requirements.txt
@@ -49,11 +50,11 @@ services:
         value: "false"
       - key: FASTAPI_BASE_URL
         fromService:
-          name: mini-linkedin-api
+          name: pythonapiserver-mini-linkedin-ai
           type: web
           envVarKey: RENDER_EXTERNAL_URL
       - key: NEXT_PUBLIC_FASTAPI_SSE_ORIGIN
         fromService:
-          name: mini-linkedin-api
+          name: pythonapiserver-mini-linkedin-ai
           type: web
           envVarKey: RENDER_EXTERNAL_URL

@@ -1,5 +1,11 @@
-// Custom server runs outside Next's env loader — load .env before Prisma/auth imports.
-import 'dotenv/config';
+// Custom server runs outside Next's env loader — load env before Prisma/auth imports.
+import path from 'path';
+import { config as dotenvConfig } from 'dotenv';
+
+if (process.env.NODE_ENV === 'production') {
+  dotenvConfig({ path: path.join(process.cwd(), '.env.production') });
+}
+dotenvConfig({ path: path.join(process.cwd(), '.env') });
 
 import { createServer } from 'http';
 import { parse } from 'url';

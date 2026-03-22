@@ -7,6 +7,13 @@ This app is **three pieces**: PostgreSQL, **FastAPI** (`backend/`), and **Next.j
 - A [Render](https://render.com) account (GitHub-connected repo is easiest).
 - An **OpenAI API key** if you want AI summarize / enhance (set on the **API** service).
 
+## Production API URL (Next.js)
+
+The repo includes **`frontend/.env.production`** with public URLs for  
+`https://pythonapiserver-mini-linkedin-ai.onrender.com` (no secrets).  
+The custom server loads it in **production** so `FASTAPI_BASE_URL` works at runtime, not only at build.  
+Change that file (or override env in the Render dashboard) if your API host changes.
+
 ## Option A — Blueprint (IaC)
 
 1. Push this repo to GitHub (including `render.yaml`).

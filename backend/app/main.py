@@ -48,6 +48,11 @@ app.include_router(ai_router)
 app.include_router(posts_stream_router)
 
 
+@app.get("/", tags=["health"], summary="Root — avoids 404 on probes hitting /")
+async def root() -> str:
+    return "hello world!"
+
+
 # Registered on the app (not a sub-router) so /docs always lists these if main.py is loaded.
 @app.get(
     "/api/news",
