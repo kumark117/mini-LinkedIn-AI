@@ -104,9 +104,19 @@ export default function SseLiveFeed({
   const sseAllowRef = useRef(sseOnlyUserIds);
   sseAllowRef.current = sseOnlyUserIds;
 
-  const initialSig = useMemo(() => initialPosts.map((p) => p.id).join(','), [initialPosts]);
+  /** Distinguish feeds (Discover vs profile vs My posts) so we reset when switching /user/a → /user/b even if both have no posts. */
+  const feedScopeKey = useMemo(() => {
+    if (sseOnlyUserIds == null) return 'all';
+    if (sseOnlyUserIds.length === 0) return 'none';
+    return sseOnlyUserIds.slice().sort((a, b) => a - b).join(',');
+  }, [sseOnlyUserIds]);
 
-  // Only sync when the id-list changes — not when the parent passes a new array ref with the same ids
+  const initialSig = useMemo(
+    () => `${initialPosts.map((p) => p.id).join(',')}|${feedScopeKey}`,
+    [initialPosts, feedScopeKey]
+  );
+
+  // Only sync when the id-list or feed scope changes — not when the parent passes a new array ref with the same ids
   // (avoids resetting `seenIds` while an SSE post is already shown, which could allow a duplicate).
   useEffect(() => {
     setPosts(dedupePostsById(initialPosts));

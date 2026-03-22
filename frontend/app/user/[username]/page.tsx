@@ -125,6 +125,7 @@ export default async function PublicUserPage({ params }: { params: { username: s
             </div>
           ) : null}
           <SseLiveFeed
+            key={`profile-feed-${username}-${profileUserId}`}
             viewerId={myUserId}
             initialPosts={mappedPosts}
             isAuthenticated={isAuthenticated}
