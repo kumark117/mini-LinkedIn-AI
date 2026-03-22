@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { DEMO_AUTH_BLURB } from '@/lib/demoAccounts';
 import { PASSWORD_MAX, USERNAME_MAX, USERNAME_MIN } from '@/lib/authLimits';
+import { broadcastFeedRefresh } from '@/lib/feedBroadcast';
 
 type Mode = 'login' | 'register';
 
@@ -81,6 +82,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
           variant: 'success'
         });
         await new Promise((r) => setTimeout(r, REDIRECT_AFTER_MS));
+        broadcastFeedRefresh('session');
         window.location.assign('/myposts');
       } finally {
         setSubmitting(false);
@@ -128,6 +130,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
         variant: 'success'
       });
       await new Promise((r) => setTimeout(r, REDIRECT_AFTER_MS));
+      broadcastFeedRefresh('session');
       window.location.assign('/myposts');
     } finally {
       setSubmitting(false);

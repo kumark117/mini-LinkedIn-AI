@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import AiFeatureDecor from '@/components/AiFeatureDecor';
+import { broadcastFeedRefresh } from '@/lib/feedBroadcast';
 
 export default function CreatePost({ isAuthenticated }: { isAuthenticated: boolean }) {
   const router = useRouter();
@@ -36,6 +37,7 @@ export default function CreatePost({ isAuthenticated }: { isAuthenticated: boole
       setStatus(null);
       setExpanded(false);
       router.refresh();
+      broadcastFeedRefresh('post');
     } finally {
       setPosting(false);
     }

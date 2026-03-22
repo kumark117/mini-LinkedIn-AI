@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { broadcastFeedRefresh } from '@/lib/feedBroadcast';
 
 /**
  * Clears the current account and forces a fresh guest session, then hard-navigates so the
@@ -38,6 +39,7 @@ export default function SignOutButton() {
               alert('Could not restore guest session — refresh the page.');
               return;
             }
+            broadcastFeedRefresh('session');
             // Hard navigation + cache-bust so AppNav re-renders guest (Sign in / Register, no Sign out).
             const next = new URL('/myposts', window.location.origin);
             next.searchParams.set('_nav', String(Date.now()));

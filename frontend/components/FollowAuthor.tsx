@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { broadcastFeedRefresh } from '@/lib/feedBroadcast';
 
 export default function FollowAuthor({
   targetUserId,
@@ -48,6 +49,7 @@ export default function FollowAuthor({
         if (!res.ok) return;
         setFollowing(!following);
         router.refresh();
+        broadcastFeedRefresh('session');
       } finally {
         setBusy(false);
       }
